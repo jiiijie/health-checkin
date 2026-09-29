@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>小眠 · AI健康打卡小管家</title>
-    <link rel="stylesheet" href="/static/style.css?v=6">
+    <link rel="stylesheet" href="/static/style.css?v=7">
 </head>
 <body>
     <div class="app">
@@ -237,6 +237,17 @@
                             <p class="empty-hint">暂无历史总结</p>
                         </div>
                     </div>
+
+                    <div class="stats-export-card">
+                        <h3>📤 导出数据</h3>
+                        <p class="export-hint">将你的健康数据保存到本地，方便备份或分析</p>
+                        <div class="export-buttons">
+                            <button class="export-btn" onclick="exportData('records', 'csv')">💧 打卡记录 CSV</button>
+                            <button class="export-btn" onclick="exportData('records', 'json')">💧 打卡记录 JSON</button>
+                            <button class="export-btn" onclick="exportData('summaries', 'csv')">📖 历史总结 CSV</button>
+                            <button class="export-btn" onclick="exportData('summaries', 'json')">📖 历史总结 JSON</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
@@ -305,6 +316,6 @@
         </div>
     </div>
 
-    <script src="/static/app.js?v=6"></script>
+    <script src="/static/app.js?v=7"></script>
 </body>
 </html>

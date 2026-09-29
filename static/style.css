@@ -807,6 +807,56 @@ body {
     border-left: 3px solid #4dd0e1;
 }
 
+/* ===== 数据导出卡片 ===== */
+.stats-export-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 12px rgba(64, 91, 104, 0.06);
+}
+
+.stats-export-card h3 {
+    font-size: 14px;
+    color: var(--slate);
+    margin-bottom: 6px;
+}
+
+.export-hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 14px;
+}
+
+.export-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.export-btn {
+    padding: 12px 10px;
+    border: 1.5px solid rgba(64, 91, 104, 0.12);
+    border-radius: var(--radius-sm);
+    background: var(--white);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.export-btn:hover {
+    border-color: var(--mint);
+    background: rgba(77, 208, 225, 0.06);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(77, 208, 225, 0.15);
+}
+
+.export-btn:active {
+    transform: translateY(0);
+}
+
 /* ===== 底部 Tab 导航 ===== */
 .tab-bar {
     display: flex;

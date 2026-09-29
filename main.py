@@ -1,3 +1,5 @@
+import csv
+import io
 import uuid
 import asyncio
 from datetime import datetime
@@ -5,7 +7,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -347,6 +349,58 @@ async def generate_daily_summary(date: str = None):
     if not entry:
         return SummaryResponse(success=False, message="该日期没有打卡记录，无法生成总结")
     return SummaryResponse(success=True, data=SavedSummary(date=target, **entry))
+
+
+# ===== 数据导出 API =====
+@app.get("/api/export/records")
+async def export_records(fmt: str = "csv"):
+    """导出全部打卡记录为 CSV 或 JSON 文件"""
+    records = get_all_records(limit=100000)
+    if fmt == "json":
+        import json
+        content = json.dumps(records, ensure_ascii=False, indent=2)
+        return Response(
+            content=content,
+            media_type="application/json",
+            headers={"Content-Disposition": f'attachment; filename="health_records_{get_today_str()}.json"'},
+        )
+    # CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["date", "timestamp", "datetime", "category", "content", "id"])
+    for r in records:
+        writer.writerow([r.get("date", ""), r.get("timestamp", ""), r.get("datetime", ""), r.get("category", ""), r.get("content", ""), r.get("id", "")])
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="health_records_{get_today_str()}.csv"'},
+    )
+
+
+@app.get("/api/export/summaries")
+async def export_summaries(fmt: str = "csv"):
+    """导出所有历史总结为 CSV 或 JSON 文件"""
+    summaries = load_summaries()
+    items = [{"date": d, **v} for d, v in sorted(summaries.items(), reverse=True)]
+    if fmt == "json":
+        import json
+        content = json.dumps(items, ensure_ascii=False, indent=2)
+        return Response(
+            content=content,
+            media_type="application/json",
+            headers={"Content-Disposition": f'attachment; filename="health_summaries_{get_today_str()}.json"'},
+        )
+    # CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["date", "summary", "suggestion", "generated_at", "auto"])
+    for item in items:
+        writer.writerow([item.get("date", ""), item.get("summary", ""), item.get("suggestion", ""), item.get("generated_at", ""), item.get("auto", "")])
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="health_summaries_{get_today_str()}.csv"'},
+    )
 
 
 # ===== 个人档案 API =====

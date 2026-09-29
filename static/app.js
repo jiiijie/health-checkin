@@ -582,3 +582,27 @@ async function deleteRecord(recordId) {
         alert("删除失败，请重试");
     }
 }
+
+// ===== 数据导出 =====
+async function exportData(type, fmt) {
+    try {
+        const res = await fetch(`/api/export/${type}?fmt=${fmt}`);
+        if (!res.ok) {
+            alert("导出失败，请重试");
+            return;
+        }
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const today = new Date().toISOString().split("T")[0];
+        a.download = `health_${type}_${today}.${fmt}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error("导出失败", err);
+        alert("导出失败，请重试");
+    }
+}
