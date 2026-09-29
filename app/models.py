@@ -21,6 +21,7 @@ class HealthRecord(BaseModel):
     content: str
     timestamp: str = ""
     date: str = ""
+    datetime: str = ""  # ISO 8601 完整时间戳，如 2026-09-29T14:30:00（新增兼容字段）
 
 
 class DaySummary(BaseModel):

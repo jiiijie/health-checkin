@@ -105,6 +105,25 @@ def get_today_str() -> str:
     return datetime.now().strftime("%Y-%m-%d")
 
 
+def backfill_record_datetime() -> int:
+    """一次性回填：为缺少 datetime 字段的旧记录根据 date+timestamp 补上 ISO 8601 时间。
+
+    向后兼容、幂等：已有 datetime 的记录不动。返回本次回填的数量。
+    """
+    records = _load_all_records()
+    changed = 0
+    for r in records:
+        if not r.get("datetime"):
+            date = r.get("date", "")
+            ts = r.get("timestamp", "")
+            if date and ts:
+                r["datetime"] = f"{date}T{ts}"
+                changed += 1
+    if changed:
+        _save_all_records(records)
+    return changed
+
+
 # ===== 个人档案 =====
 def load_profile() -> dict:
     _ensure_data_dir()

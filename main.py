@@ -16,6 +16,7 @@ from app.data_store import (
     save_record, get_records_by_date, get_all_records, get_today_str,
     load_profile, save_profile, update_record, delete_record, get_record_by_id,
     load_chat_histories, save_chat_histories, load_summaries, save_summary, get_summary,
+    backfill_record_datetime,
 )
 
 # 使用绝对路径加载 .env 文件，避免 uvicorn reload 时工作目录变化导致找不到
@@ -100,6 +101,8 @@ async def _daily_summary_loop():
 async def lifespan(app: FastAPI):
     # 启动时从磁盘加载对话历史
     chat_histories.update(load_chat_histories())
+    # 为旧记录回填 ISO 8601 datetime 字段（幂等、向后兼容）
+    backfill_record_datetime()
     # 启动每日总结后台任务
     task = asyncio.create_task(_daily_summary_loop())
     yield
@@ -135,6 +138,7 @@ async def chat(req: ChatRequest):
 
     today = get_today_str()
     now_str = datetime.now().strftime("%H:%M:%S")
+    now_iso = datetime.now().isoformat(timespec="seconds")
     saved_records = []
 
     for r in result.get("records", []):
@@ -149,6 +153,7 @@ async def chat(req: ChatRequest):
             "content": content,
             "timestamp": now_str,
             "date": today,
+            "datetime": now_iso,
         }
         save_record(record)
         saved_records.append(record)
@@ -163,6 +168,7 @@ async def chat(req: ChatRequest):
                 "content": req.message,
                 "timestamp": now_str,
                 "date": today,
+                "datetime": now_iso,
             }
             save_record(record)
             saved_records.append(record)
@@ -200,6 +206,7 @@ async def quick_record(req: QuickRecordRequest):
         "content": req.content,
         "timestamp": now_str,
         "date": today,
+        "datetime": datetime.now().isoformat(timespec="seconds"),
     }
     save_record(record)
 
