@@ -2,7 +2,7 @@
 const CATEGORY_LABELS = {
     diet: "🍽️ 饮食",
     sleep: "😴 睡眠",
-    exercise: " 运动",
+    exercise: "🏃 运动",
     water: "💧 饮水",
     other: "📝 其他",
 };
@@ -17,7 +17,7 @@ const QUICK_INPUT_CONFIG = {
         ],
     },
     diet: {
-        title: "️ 记录饮食",
+        title: "🍽️ 记录饮食",
         fields: [
             { name: "meal", label: "哪一餐？", type: "select", options: ["早餐", "午餐", "晚餐", "加餐/零食"] },
             { name: "content", label: "吃了什么？", type: "text", placeholder: "比如：一碗牛肉面、一个苹果..." },
@@ -343,6 +343,12 @@ async function loadStats() {
         document.getElementById("stat-exercise").textContent = counts.exercise;
         document.getElementById("stat-sleep").textContent = counts.sleep;
 
+        // 加载目标进度 + 提醒
+        loadGoals();
+
+        // 加载历史总结
+        loadHistorySummaries();
+
         // 加载总结
         try {
             const summaryRes = await fetch("/api/summary/today");
@@ -380,6 +386,65 @@ async function loadStats() {
         }
     } catch (err) {
         console.error("加载统计失败", err);
+    }
+}
+
+// ===== 目标进度 =====
+async function loadGoals() {
+    try {
+        const res = await fetch("/api/goals");
+        const data = await res.json();
+
+        const units = { water: "ml", exercise: "分钟", sleep: "小时" };
+        ["water", "exercise", "sleep"].forEach((key) => {
+            const g = data[key] || {};
+            const fill = document.getElementById(`goal-${key}-fill`);
+            const num = document.getElementById(`goal-${key}-num`);
+            if (num) num.textContent = `${g.total || 0} / ${g.target || 0} ${units[key]}`;
+            if (fill) {
+                const pct = Math.min(g.percent || 0, 100);
+                fill.style.width = pct + "%";
+                fill.parentElement.title = `${pct}%`;
+            }
+        });
+
+        const alertsBox = document.getElementById("goals-alerts");
+        if (alertsBox) {
+            if (data.alerts && data.alerts.length > 0) {
+                alertsBox.innerHTML = data.alerts.map((a) => `<div class="goal-alert">${a}</div>`).join("");
+            } else {
+                alertsBox.innerHTML = '<div class="goal-alert ok">🎉 今日目标都达成啦，真棒！</div>';
+            }
+        }
+    } catch (err) {
+        console.error("加载目标失败", err);
+    }
+}
+
+// ===== 历史总结 =====
+async function loadHistorySummaries() {
+    try {
+        const res = await fetch("/api/summaries");
+        const data = await res.json();
+        const box = document.getElementById("history-summaries");
+        if (!box) return;
+        const list = (data && data.summaries) || [];
+        if (list.length === 0) {
+            box.innerHTML = '<p class="empty-hint">暂无历史总结（每晚 22:30 自动生成）</p>';
+            return;
+        }
+        box.innerHTML = list
+            .map((s) => {
+                const tag = s.auto ? "自动" : "手动";
+                return `<div class="history-summary-item">
+                    <div class="hs-date">📅 ${s.date} <span class="hs-tag">${tag}</span></div>
+                    <div class="hs-summary">${s.summary || ""}</div>
+                    <div class="hs-suggestion">💡 ${s.suggestion || ""}</div>
+                </div>`;
+            })
+            .join("");
+    } catch (err) {
+        console.error("加载历史总结失败", err);
     }
 }
 

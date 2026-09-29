@@ -72,3 +72,36 @@ class RecordResponse(BaseModel):
     success: bool = True
     record: Optional[HealthRecord] = None
     message: str = ""
+
+
+class GoalItem(BaseModel):
+    total: float = 0
+    target: float = 0
+    percent: int = 0
+    unit: str = ""
+
+
+class GoalsResponse(BaseModel):
+    water: GoalItem = GoalItem()
+    sleep: GoalItem = GoalItem()
+    exercise: GoalItem = GoalItem()
+    alerts: list[str] = []
+
+
+class SavedSummary(BaseModel):
+    date: str
+    summary: str = ""
+    suggestion: str = ""
+    generated_at: str = ""
+    auto: bool = False
+
+
+class SummariesResponse(BaseModel):
+    success: bool = True
+    summaries: list[SavedSummary] = []
+
+
+class SummaryResponse(BaseModel):
+    success: bool = True
+    data: Optional[SavedSummary] = None
+    message: str = ""

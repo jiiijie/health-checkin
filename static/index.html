@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>小眠 · AI健康打卡小管家</title>
-    <link rel="stylesheet" href="/static/style.css?v=3">
+    <link rel="stylesheet" href="/static/style.css?v=5">
 </head>
 <body>
     <div class="app">
@@ -37,7 +37,7 @@
                         <span class="quick-label">喝水</span>
                     </button>
                     <button class="quick-btn" data-type="diet" onclick="showQuickInput('diet')">
-                        <span class="quick-icon">️</span>
+                        <span class="quick-icon">🍽️</span>
                         <span class="quick-label">饮食</span>
                     </button>
                     <button class="quick-btn" data-type="exercise" onclick="showQuickInput('exercise')">
@@ -64,7 +64,7 @@
             <div class="page page-profile" id="page-profile">
                 <div class="profile-content">
                     <div class="profile-header-card">
-                        <div class="profile-avatar-large"></div>
+                        <div class="profile-avatar-large">👤</div>
                         <h2 class="profile-name" id="profile-display-name">点击编辑档案</h2>
                         <p class="profile-hint">完善信息，小眠会给你更精准的建议</p>
                     </div>
@@ -166,7 +166,7 @@
 
                     <div class="stats-grid">
                         <div class="stat-card">
-                            <div class="stat-icon"></div>
+                            <div class="stat-icon">💧</div>
                             <div class="stat-value" id="stat-water">0</div>
                             <div class="stat-label">今日饮水 (杯)</div>
                         </div>
@@ -187,6 +187,25 @@
                         </div>
                     </div>
 
+                    <div class="stats-goals-card">
+                        <h3>🎯 今日目标</h3>
+                        <div id="goals-list">
+                            <div class="goal-row" data-key="water">
+                                <div class="goal-top"><span class="goal-name">💧 饮水</span><span class="goal-num" id="goal-water-num">0 / 0 ml</span></div>
+                                <div class="goal-bar"><div class="goal-fill water" id="goal-water-fill"></div></div>
+                            </div>
+                            <div class="goal-row" data-key="exercise">
+                                <div class="goal-top"><span class="goal-name">🏃 运动</span><span class="goal-num" id="goal-exercise-num">0 / 0 分钟</span></div>
+                                <div class="goal-bar"><div class="goal-fill exercise" id="goal-exercise-fill"></div></div>
+                            </div>
+                            <div class="goal-row" data-key="sleep">
+                                <div class="goal-top"><span class="goal-name">😴 睡眠</span><span class="goal-num" id="goal-sleep-num">0 / 0 小时</span></div>
+                                <div class="goal-bar"><div class="goal-fill sleep" id="goal-sleep-fill"></div></div>
+                            </div>
+                        </div>
+                        <div id="goals-alerts" class="goals-alerts"></div>
+                    </div>
+
                     <div class="stats-summary-card">
                         <h3>📋 今日总结</h3>
                         <div id="stats-summary-text" class="stats-summary-text">
@@ -202,6 +221,13 @@
                         <h3>📅 最近记录</h3>
                         <div id="stats-history-list" class="stats-history-list">
                             <p class="empty-hint">暂无记录</p>
+                        </div>
+                    </div>
+
+                    <div class="stats-history-card">
+                        <h3>📖 历史总结</h3>
+                        <div id="history-summaries" class="history-summaries">
+                            <p class="empty-hint">暂无历史总结</p>
                         </div>
                     </div>
                 </div>
@@ -272,6 +298,6 @@
         </div>
     </div>
 
-    <script src="/static/app.js?v=3"></script>
+    <script src="/static/app.js?v=5"></script>
 </body>
 </html>
