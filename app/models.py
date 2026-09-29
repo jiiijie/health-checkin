@@ -106,3 +106,23 @@ class SummaryResponse(BaseModel):
     success: bool = True
     data: Optional[SavedSummary] = None
     message: str = ""
+
+
+class WeeklyDay(BaseModel):
+    date: str
+    label: str = ""
+    water: float = 0
+    sleep: float = 0
+    exercise: float = 0
+    active: bool = False
+
+
+class WeeklyResponse(BaseModel):
+    success: bool = True
+    days: list[WeeklyDay] = []
+    avg: dict = {}
+    targets: dict = {}
+    streaks: dict = {}
+    checkin_days: int = 0
+    total_days: int = 7
+    highlight: str = ""

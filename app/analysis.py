@@ -142,4 +142,84 @@ def build_alerts(goals: dict, records: list[dict], now: datetime) -> list[str]:
         if ex_secs and now_sec - max(ex_secs) > 2 * 3600:
             alerts.append("🪑 距上次运动已经坐了 2 小时以上啦，站起来伸展一下吧～")
 
+    # 饮食不规律：基于三餐时间窗判断漏餐，以及深夜进食
+    diet_hours = sorted(
+        t / 3600.0 for t in (_to_seconds(r.get("timestamp", "")) for r in records if r.get("category") == "diet") if t is not None
+    )
+    meal_windows = [("早餐", 6, 10), ("午餐", 11, 14), ("晚餐", 17, 21)]
+    missing = [
+        name for name, s, e in meal_windows
+        if hour > e and not any(s - 1 <= h <= e + 1 for h in diet_hours)
+    ]
+    if missing:
+        alerts.append("🍽️ " + "、".join(missing) + "好像没记录到进食哦，尽量三餐规律，别饿着自己～")
+    if any(h >= 22 or h < 5 for h in diet_hours):
+        alerts.append("🌙 发现有深夜进食的记录呢，睡前两小时尽量少吃喝，肠胃和睡眠都会更轻松～")
+
     return alerts
+
+
+def compute_weekly(records: list[dict], profile: dict, now: datetime, days: int = 7) -> dict:
+    """聚合近 N 天（含今天）的饮水/睡眠/运动趋势，输出每日数值、均值、达标天数与一句温柔点评。
+
+    复用单日解析逻辑，不依赖 AI，保证稳的可重复。旧记录无 date 字段则跳过。
+    """
+    from datetime import timedelta
+
+    water_target = float(profile.get("daily_water") or 2000)
+    sleep_target = float(profile.get("target_sleep") or 8)
+    exercise_target = float(profile.get("daily_exercise") or 30)
+
+    # 按日期分组
+    by_date: dict[str, list[dict]] = {}
+    for r in records:
+        d = r.get("date", "")
+        if d:
+            by_date.setdefault(d, []).append(r)
+
+    dates = [(now - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(days - 1, -1, -1)]
+
+    day_rows = []
+    for d in dates:
+        recs = by_date.get(d, [])
+        water = sum(parse_water_ml(r.get("content", "")) for r in recs if r.get("category") == "water")
+        sleep = sum(parse_sleep_hours(r.get("content", "")) for r in recs if r.get("category") == "sleep")
+        exercise = sum(parse_exercise_minutes(r.get("content", "")) for r in recs if r.get("category") == "exercise")
+        has_any = bool(recs)
+        day_rows.append({
+            "date": d,
+            "label": d[5:].replace("-", "/"),
+            "water": round(water),
+            "sleep": round(sleep, 1),
+            "exercise": round(exercise),
+            "active": has_any,
+        })
+
+    def avg(key):
+        return round(sum(x[key] for x in day_rows) / days, 1)
+
+    water_ok = sum(1 for x in day_rows if x["water"] >= water_target)
+    sleep_ok = sum(1 for x in day_rows if x["sleep"] >= sleep_target)
+    ex_ok = sum(1 for x in day_rows if x["exercise"] >= exercise_target)
+    checkin_days = sum(1 for x in day_rows if x["active"])
+
+    # 一句基于真实数据的温柔点评
+    best = max(day_rows, key=lambda x: x["water"]) if day_rows else None
+    if checkin_days == 0:
+        highlight = "这一周还没有打卡记录哦，从今天开始和小眠一起记录吧～"
+    else:
+        highlight = (
+            f"近 {days} 天你打卡了 {checkin_days} 天，日均饮水 {avg('water')}ml、睡眠 {avg('sleep')} 小时、运动 {avg('exercise')} 分钟。"
+            f"饮水达标 {water_ok} 天、睡眠达标 {sleep_ok} 天、运动达标 {ex_ok} 天"
+            + (f"，最棒的是 {best['label']} 喝了 {best['water']}ml！" if best and best["water"] > 0 else "，继续保持呀～")
+        )
+
+    return {
+        "days": day_rows,
+        "avg": {"water": avg("water"), "sleep": avg("sleep"), "exercise": avg("exercise")},
+        "targets": {"water": round(water_target), "sleep": round(sleep_target, 1), "exercise": round(exercise_target)},
+        "streaks": {"water": water_ok, "sleep": sleep_ok, "exercise": ex_ok},
+        "checkin_days": checkin_days,
+        "total_days": days,
+        "highlight": highlight,
+    }

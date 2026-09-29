@@ -346,6 +346,9 @@ async function loadStats() {
         // 加载目标进度 + 提醒
         loadGoals();
 
+        // 加载一周趋势
+        loadWeekly();
+
         // 加载历史总结
         loadHistorySummaries();
 
@@ -445,6 +448,58 @@ async function loadHistorySummaries() {
             .join("");
     } catch (err) {
         console.error("加载历史总结失败", err);
+    }
+}
+
+// ===== 一周趋势 =====
+async function loadWeekly() {
+    try {
+        const res = await fetch("/api/weekly?days=7");
+        const data = await res.json();
+        const chart = document.getElementById("weekly-chart");
+        const metrics = document.getElementById("weekly-metrics");
+        const highlight = document.getElementById("weekly-highlight");
+        if (!chart) return;
+
+        const days = data.days || [];
+        const targets = data.targets || {};
+        // 每组三根柱：饮水(相对目标)、运动、睡眠；高度按各自目标归一化
+        const bars = days
+            .map((d) => {
+                const hW = Math.min((d.water / (targets.water || 2000)) * 100, 100);
+                const hE = Math.min((d.exercise / (targets.exercise || 30)) * 100, 100);
+                const hS = Math.min((d.sleep / (targets.sleep || 8)) * 100, 100);
+                return `<div class="wk-col ${d.active ? "active" : ""}">
+                    <div class="wk-bars">
+                        <div class="wk-bar water" style="height:${hW}%" title="${d.label} 饮水 ${d.water}ml"></div>
+                        <div class="wk-bar exercise" style="height:${hE}%" title="${d.label} 运动 ${d.exercise}分钟"></div>
+                        <div class="wk-bar sleep" style="height:${hS}%" title="${d.label} 睡眠 ${d.sleep}小时"></div>
+                    </div>
+                    <div class="wk-label">${d.label}</div>
+                </div>`;
+            })
+            .join("");
+        chart.innerHTML = bars || '<p class="empty-hint">暂无数据</p>';
+
+        if (metrics) {
+            const streaks = data.streaks || {};
+            metrics.innerHTML = `
+                <div class="wk-legend">
+                    <span class="wk-legend-item"><i class="dot water"></i>饮水</span>
+                    <span class="wk-legend-item"><i class="dot exercise"></i>运动</span>
+                    <span class="wk-legend-item"><i class="dot sleep"></i>睡眠</span>
+                </div>
+                <div class="wk-streaks">
+                    <span>💧达标 ${streaks.water || 0}天</span>
+                    <span>🏃达标 ${streaks.exercise || 0}天</span>
+                    <span>😴达标 ${streaks.sleep || 0}天</span>
+                    <span>📅打卡 ${data.checkin_days || 0}/${data.total_days || 7}天</span>
+                </div>`;
+        }
+
+        if (highlight) highlight.textContent = data.highlight || "";
+    } catch (err) {
+        console.error("加载一周趋势失败", err);
     }
 }
 

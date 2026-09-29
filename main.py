@@ -9,9 +9,9 @@ from fastapi.responses import FileResponse
 from pathlib import Path
 from dotenv import load_dotenv
 
-from app.models import ChatRequest, ChatResponse, HealthRecord, DaySummary, UserProfile, ProfileResponse, QuickRecordRequest, UpdateRecordRequest, RecordResponse, GoalsResponse, GoalItem, SavedSummary, SummariesResponse, SummaryResponse
+from app.models import ChatRequest, ChatResponse, HealthRecord, DaySummary, UserProfile, ProfileResponse, QuickRecordRequest, UpdateRecordRequest, RecordResponse, GoalsResponse, GoalItem, SavedSummary, SummariesResponse, SummaryResponse, WeeklyResponse
 from app.ai_service import chat_with_ai, generate_summary
-from app.analysis import compute_goals, build_alerts
+from app.analysis import compute_goals, build_alerts, compute_weekly
 from app.data_store import (
     save_record, get_records_by_date, get_all_records, get_today_str,
     load_profile, save_profile, update_record, delete_record, get_record_by_id,
@@ -311,6 +311,14 @@ async def goals():
         exercise=GoalItem(**goals_data["exercise"]),
         alerts=alerts,
     )
+
+
+@app.get("/api/weekly", response_model=WeeklyResponse)
+async def weekly(days: int = 7):
+    all_records = get_all_records(limit=100000)
+    profile = load_profile()
+    data = compute_weekly(all_records, profile, datetime.now(), days=max(1, min(days, 30)))
+    return WeeklyResponse(**data)
 
 
 # ===== 历史每日总结 API =====
