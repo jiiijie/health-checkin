@@ -2,7 +2,9 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-DATA_DIR = Path("data")
+# 使用绝对路径，避免 uvicorn reload 时工作目录变化
+BASE_DIR = Path(__file__).parent.parent
+DATA_DIR = BASE_DIR / "data"
 RECORDS_FILE = DATA_DIR / "records.json"
 
 

@@ -1,0 +1,30 @@
+[
+  {
+    "id": "c1e9e267-4f54-473f-979e-80e7eed25740",
+    "category": "diet",
+    "content": "茶叶蛋",
+    "timestamp": "11:47:35",
+    "date": "2026-09-29"
+  },
+  {
+    "id": "9f9c0a20-7c88-4119-b033-503e55a336e8",
+    "category": "diet",
+    "content": "午饭：150克米饭、土豆炖豆角、凉拌牛肉、凉拌油麦菜",
+    "timestamp": "11:48:18",
+    "date": "2026-09-29"
+  },
+  {
+    "id": "ae7152b7-0a8d-40d5-a4b0-35c5253c6a5f",
+    "category": "exercise",
+    "content": "步数12000步",
+    "timestamp": "11:50:42",
+    "date": "2026-09-29"
+  },
+  {
+    "id": "cfb26ae0-14d6-4c40-bb56-85e73ee8de81",
+    "category": "exercise",
+    "content": "跑步30分钟，消耗400卡",
+    "timestamp": "11:50:42",
+    "date": "2026-09-29"
+  }
+]

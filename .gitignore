@@ -10,8 +10,11 @@ venv/
 # Environment
 .env
 
+
 # Data
-data/
+data/*.db
+data/*.log
+!data/records/
 
 # IDE
 .idea/
