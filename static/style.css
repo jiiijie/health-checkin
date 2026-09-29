@@ -514,6 +514,29 @@ body {
     color: var(--text-primary);
 }
 
+.history-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.action-btn {
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px 6px;
+    border-radius: 8px;
+    opacity: 0.55;
+    transition: all 0.2s;
+}
+
+.action-btn:hover {
+    opacity: 1;
+    background: rgba(64, 91, 104, 0.08);
+    transform: scale(1.1);
+}
+
 .category-tag {
     display: inline-block;
     font-size: 10px;

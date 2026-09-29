@@ -55,3 +55,20 @@ class UserProfile(BaseModel):
 class ProfileResponse(BaseModel):
     success: bool = True
     profile: Optional[dict] = None
+
+
+class QuickRecordRequest(BaseModel):
+    category: HealthCategory
+    content: str
+    message: str = ""
+
+
+class UpdateRecordRequest(BaseModel):
+    category: Optional[HealthCategory] = None
+    content: Optional[str] = None
+
+
+class RecordResponse(BaseModel):
+    success: bool = True
+    record: Optional[HealthRecord] = None
+    message: str = ""

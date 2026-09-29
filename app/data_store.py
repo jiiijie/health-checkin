@@ -18,8 +18,12 @@ def _load_all_records() -> list[dict]:
     _ensure_data_dir()
     if not RECORDS_FILE.exists():
         return []
-    with open(RECORDS_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(RECORDS_FILE, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+            return json.loads(content) if content else []
+    except (json.JSONDecodeError, ValueError):
+        return []
 
 
 def _save_all_records(records: list[dict]):
@@ -44,6 +48,38 @@ def get_all_records(limit: int = 100) -> list[dict]:
     return records[-limit:]
 
 
+def get_record_by_id(record_id: str) -> dict | None:
+    records = _load_all_records()
+    for r in records:
+        if r.get("id") == record_id:
+            return r
+    return None
+
+
+def update_record(record_id: str, updates: dict) -> dict | None:
+    """根据 id 更新记录，返回更新后的记录；找不到返回 None"""
+    records = _load_all_records()
+    for i, r in enumerate(records):
+        if r.get("id") == record_id:
+            # 只允许更新白名单字段，id/date 不变
+            for key in ("category", "content", "timestamp"):
+                if key in updates and updates[key] is not None:
+                    records[i][key] = updates[key]
+            _save_all_records(records)
+            return records[i]
+    return None
+
+
+def delete_record(record_id: str) -> bool:
+    """根据 id 删除记录，成功返回 True，找不到返回 False"""
+    records = _load_all_records()
+    new_records = [r for r in records if r.get("id") != record_id]
+    if len(new_records) == len(records):
+        return False
+    _save_all_records(new_records)
+    return True
+
+
 def get_today_str() -> str:
     return datetime.now().strftime("%Y-%m-%d")
 
@@ -53,8 +89,12 @@ def load_profile() -> dict:
     _ensure_data_dir()
     if not PROFILE_FILE.exists():
         return {}
-    with open(PROFILE_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(PROFILE_FILE, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+            return json.loads(content) if content else {}
+    except (json.JSONDecodeError, ValueError):
+        return {}
 
 
 def save_profile(profile: dict):

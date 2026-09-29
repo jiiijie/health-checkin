@@ -200,32 +200,74 @@ function closeQuickInput() {
 async function submitQuickRecord() {
     if (!currentQuickType) return;
 
-    const config = QUICK_INPUT_CONFIG[currentQuickType];
     const fields = document.querySelectorAll("#modal-fields [data-field-name]");
     const values = {};
     fields.forEach((f) => {
         values[f.dataset.fieldName] = f.value.trim();
     });
 
-    // 构建消息文本
+    // 构建消息文本和结构化内容
     let message = "";
+    let content = "";
     if (currentQuickType === "water") {
         message = `我喝了${values.amount || "一杯水"}${values.note ? "，" + values.note : ""}`;
+        content = `饮水${values.amount || "一杯水"}`;
     } else if (currentQuickType === "diet") {
         message = `${values.meal || ""}吃了${values.content || "一些东西"}`;
+        content = `${values.meal || ""}：${values.content || "一些东西"}`;
     } else if (currentQuickType === "exercise") {
         message = `我${values.type ? "做了" + values.type : "运动了"}${values.duration ? values.duration + "分钟" : ""}`;
+        content = `${values.type || "运动"}${values.duration ? " " + values.duration + "分钟" : ""}`;
     } else if (currentQuickType === "sleep") {
         message = `昨晚${values.bedtime ? values.bedtime + "睡的" : ""}${values.wake_time ? "，" + values.wake_time + "起的" : ""}${values.quality ? "，睡眠质量" + values.quality : ""}`;
+        content = `睡眠 ${values.bedtime || "?"}~${values.wake_time || "?"} 质量${values.quality || "一般"}`;
     }
 
+    const category = currentQuickType;
     closeQuickInput();
+    if (!message) return;
 
-    // 自动发送消息
-    if (message) {
-        document.getElementById("chat-input").value = message;
-        await sendMessage();
+    // 显示用户消息
+    const btnSend = document.getElementById("btn-send");
+    btnSend.disabled = true;
+    document.getElementById("alerts-area").innerHTML = "";
+    appendMessage("user", message);
+    showTypingIndicator();
+
+    try {
+        // 调用快捷记录 API（直接保存，不依赖 AI 解析）
+        const res = await fetch("/api/quick-record", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ category: category, content, message }),
+        });
+        const data = await res.json();
+
+        removeTypingIndicator();
+        appendMessage("assistant", data.reply);
+
+        if (data.records && data.records.length > 0) {
+            const recordText = data.records
+                .map((r) => `${CATEGORY_LABELS[r.category] || r.category}：${r.content}`)
+                .join("\n");
+            appendMessage("assistant", `📝 已记录：\n${recordText}`);
+        }
+
+        if (data.alerts && data.alerts.length > 0) {
+            data.alerts.forEach((alert) => {
+                const div = document.createElement("div");
+                div.className = "alert-item";
+                div.textContent = alert;
+                document.getElementById("alerts-area").appendChild(div);
+            });
+        }
+    } catch (err) {
+        removeTypingIndicator();
+        appendMessage("assistant", "哎呀，小眠走神了一下下…请再试一次吧 😣");
+        console.error(err);
     }
+
+    btnSend.disabled = false;
 }
 
 // ===== 档案功能 =====
@@ -328,6 +370,10 @@ async function loadStats() {
                         <span class="category-tag ${r.category}">${label}</span>
                         ${r.content}
                     </span>
+                    <span class="history-actions">
+                        <button class="action-btn" title="编辑" onclick="showEditModal('${r.id}')">✏️</button>
+                        <button class="action-btn" title="删除" onclick="deleteRecord('${r.id}')">🗑️</button>
+                    </span>
                 `;
                 historyList.appendChild(div);
             });
@@ -341,3 +387,78 @@ async function loadStats() {
 document.getElementById("quick-modal").addEventListener("click", function (e) {
     if (e.target === this) closeQuickInput();
 });
+document.getElementById("edit-modal").addEventListener("click", function (e) {
+    if (e.target === this) closeEditModal();
+});
+
+// ===== 记录编辑 / 删除 =====
+let editingRecordId = null;
+
+async function showEditModal(recordId) {
+    try {
+        const res = await fetch(`/api/records/${recordId}`);
+        const data = await res.json();
+        if (!data.success || !data.record) {
+            alert("记录不存在，可能已被删除");
+            return;
+        }
+        editingRecordId = recordId;
+        document.getElementById("edit-category").value = data.record.category;
+        document.getElementById("edit-content").value = data.record.content;
+        document.getElementById("edit-modal").classList.add("show");
+    } catch (err) {
+        console.error("打开编辑弹窗失败", err);
+        alert("操作失败，请重试");
+    }
+}
+
+function closeEditModal() {
+    document.getElementById("edit-modal").classList.remove("show");
+    editingRecordId = null;
+}
+
+async function saveRecordEdit() {
+    if (!editingRecordId) return;
+
+    const category = document.getElementById("edit-category").value;
+    const content = document.getElementById("edit-content").value.trim();
+    if (!content) {
+        alert("内容不能为空");
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/records/${editingRecordId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ category, content }),
+        });
+        const data = await res.json();
+        if (data.success) {
+            closeEditModal();
+            loadStats();
+        } else {
+            alert(data.message || "修改失败");
+        }
+    } catch (err) {
+        console.error("修改失败", err);
+        alert("修改失败，请重试");
+    }
+}
+
+async function deleteRecord(recordId) {
+    if (!confirm("确定删除这条记录吗？")) return;
+
+    try {
+        const res = await fetch(`/api/records/${recordId}`, { method: "DELETE" });
+        const data = await res.json();
+        if (data.success) {
+            loadStats();
+        } else {
+            alert(data.message || "删除失败");
+        }
+    } catch (err) {
+        console.error("删除失败", err);
+        alert("删除失败，请重试");
+    }
+}

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>小眠 · AI健康打卡小管家</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v=3">
 </head>
 <body>
     <div class="app">
@@ -240,8 +240,38 @@
                 </div>
             </div>
         </div>
+
+        <!-- 编辑记录弹窗 -->
+        <div class="modal-overlay" id="edit-modal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>✏️ 编辑记录</h3>
+                    <button class="modal-close" onclick="closeEditModal()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="modal-field">
+                        <label>类别</label>
+                        <select id="edit-category">
+                            <option value="diet">🍽️ 饮食</option>
+                            <option value="sleep">😴 睡眠</option>
+                            <option value="exercise">🏃 运动</option>
+                            <option value="water">💧 饮水</option>
+                            <option value="other">📝 其他</option>
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>内容</label>
+                        <input type="text" id="edit-content" placeholder="记录内容...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cancel" onclick="closeEditModal()">取消</button>
+                    <button class="btn-confirm" onclick="saveRecordEdit()">保存</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=3"></script>
 </body>
 </html>

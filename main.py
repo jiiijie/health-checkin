@@ -8,17 +8,48 @@ from fastapi.responses import FileResponse
 from pathlib import Path
 from dotenv import load_dotenv
 
-from app.models import ChatRequest, ChatResponse, HealthRecord, DaySummary, UserProfile, ProfileResponse
+from app.models import ChatRequest, ChatResponse, HealthRecord, DaySummary, UserProfile, ProfileResponse, QuickRecordRequest, UpdateRecordRequest, RecordResponse
 from app.ai_service import chat_with_ai, generate_summary
 from app.data_store import (
     save_record, get_records_by_date, get_all_records, get_today_str,
-    load_profile, save_profile,
+    load_profile, save_profile, update_record, delete_record, get_record_by_id,
 )
 
 # 使用绝对路径加载 .env 文件，避免 uvicorn reload 时工作目录变化导致找不到
 load_dotenv(Path(__file__).parent / ".env")
 
 chat_histories: dict[str, list[dict]] = {}
+
+
+def _is_meta_record(category: str, content: str) -> bool:
+    """判断一条记录是否是“总结/查询请求”这类元操作（不应作为健康数据保存）"""
+    if not content:
+        return True
+    meta_keywords = ["请求总结", "用户请求", "总结今天", "总结我的一天", "回顾今天", "要求总结", "想要总结"]
+    if any(k in content for k in meta_keywords):
+        return True
+    # other 类别且内容为空或极短无意义
+    if category == "other" and len(content.strip()) < 2:
+        return True
+    return False
+
+
+def _detect_health_message(msg: str) -> dict | None:
+    """关键词检测：当 AI 没返回 JSON 时，根据用户消息内容自动识别类别"""
+    msg_lower = msg.lower()
+    # 饮水
+    if any(k in msg_lower for k in ["喝水", "喝了", "ml", "毫升", "一杯水", "一瓶水"]):
+        return {"category": "water"}
+    # 睡眠
+    if any(k in msg_lower for k in ["睡觉", "睡了", "睡的", "入睡", "起床", "昨晚", "睡眠"]):
+        return {"category": "sleep"}
+    # 运动
+    if any(k in msg_lower for k in ["跑步", "运动", "健身", "游泳", "瑜伽", "散步", "骑车", "分钟"]):
+        return {"category": "exercise"}
+    # 饮食
+    if any(k in msg_lower for k in ["吃了", "早餐", "午餐", "晚餐", "早饭", "午饭", "晚饭", "喝了一杯", "外卖"]):
+        return {"category": "diet"}
+    return None
 
 
 @asynccontextmanager
@@ -42,10 +73,14 @@ async def chat(req: ChatRequest):
         chat_histories[session_id] = []
 
     history = chat_histories[session_id]
+
+    # 加载用户档案和今日记录，传入 AI 上下文
+    profile = load_profile()
+    today_records = get_records_by_date(get_today_str())
+    result = await chat_with_ai(req.message, history, profile=profile, records=today_records)
+
+    # AI 调用完成后，再将本轮对话加入历史（避免 user_message 在 messages 中出现两次）
     history.append({"role": "user", "content": req.message})
-
-    result = await chat_with_ai(req.message, history)
-
     history.append({"role": "assistant", "content": result["reply"]})
 
     today = get_today_str()
@@ -53,24 +88,97 @@ async def chat(req: ChatRequest):
     saved_records = []
 
     for r in result.get("records", []):
+        category = r.get("category", "other")
+        content = r.get("content", "")
+        # 过滤掉“总结/查询请求”这类误记录的垃圾数据
+        if _is_meta_record(category, content):
+            continue
         record = {
             "id": str(uuid.uuid4()),
-            "category": r.get("category", "other"),
-            "content": r.get("content", ""),
+            "category": category,
+            "content": content,
             "timestamp": now_str,
             "date": today,
         }
         save_record(record)
         saved_records.append(record)
 
+    # 兆底：AI 没返回 JSON 但用户消息明显包含健康信息，直接保存
+    if not saved_records:
+        fallback = _detect_health_message(req.message)
+        if fallback:
+            record = {
+                "id": str(uuid.uuid4()),
+                "category": fallback["category"],
+                "content": req.message,
+                "timestamp": now_str,
+                "date": today,
+            }
+            save_record(record)
+            saved_records.append(record)
+
     alerts = result.get("alerts", [])
     hour = datetime.now().hour
     if hour >= 23 or hour < 6:
         alerts.append("已经很晚啦，早点休息对身体好哦～")
 
+    # 处理档案更新（对话中识别到的个人信息自动同步到档案）
+    profile_update = result.get("profile_update", {})
+    if profile_update:
+        merged = {**profile, **profile_update}
+        save_profile(merged)
+        alerts.append(f"📝 已自动更新档案：{', '.join(profile_update.keys())}")
+
     return ChatResponse(
         reply=result["reply"],
         records=[HealthRecord(**r) for r in saved_records],
+        alerts=alerts,
+    )
+
+
+# ===== 快捷打卡 API（直接保存，不依赖 AI 解析） =====
+@app.post("/api/quick-record", response_model=ChatResponse)
+async def quick_record(req: QuickRecordRequest):
+    # 1. 先直接保存记录（保证一定成功）
+    today = get_today_str()
+    now_str = datetime.now().strftime("%H:%M:%S")
+    record = {
+        "id": str(uuid.uuid4()),
+        "category": req.category.value,
+        "content": req.content,
+        "timestamp": now_str,
+        "date": today,
+    }
+    save_record(record)
+
+    # 2. 让 AI 生成友好回复（失败也不影响记录保存）
+    message = req.message or req.content
+    try:
+        session_id = "default"
+        if session_id not in chat_histories:
+            chat_histories[session_id] = []
+        history = chat_histories[session_id]
+        profile = load_profile()
+        today_records = get_records_by_date(get_today_str())
+        result = await chat_with_ai(message, history, profile=profile, records=today_records)
+        reply = result["reply"]
+        # 更新对话历史
+        history.append({"role": "user", "content": message})
+        history.append({"role": "assistant", "content": reply})
+    except Exception:
+        # AI 失败时用默认回复
+        category_names = {"water": "喝水", "diet": "饮食", "exercise": "运动", "sleep": "睡眠", "other": "记录"}
+        name = category_names.get(req.category.value, "记录")
+        reply = f"已记下你的{name}啦～继续加油！💪"
+
+    alerts = []
+    hour = datetime.now().hour
+    if hour >= 23 or hour < 6:
+        alerts.append("已经很晚啦，早点休息对身体好哦～")
+
+    return ChatResponse(
+        reply=reply,
+        records=[HealthRecord(**record)],
         alerts=alerts,
     )
 
@@ -80,6 +188,36 @@ async def get_records(date: str = None):
     if date:
         return get_records_by_date(date)
     return get_all_records()
+
+
+@app.get("/api/records/{record_id}", response_model=RecordResponse)
+async def get_one_record(record_id: str):
+    record = get_record_by_id(record_id)
+    if not record:
+        return RecordResponse(success=False, message="记录不存在")
+    return RecordResponse(success=True, record=HealthRecord(**record))
+
+
+@app.put("/api/records/{record_id}", response_model=RecordResponse)
+async def modify_record(record_id: str, req: UpdateRecordRequest):
+    updates = req.model_dump(exclude_none=True)
+    # HealthCategory 枚举转字符串
+    if "category" in updates and hasattr(updates["category"], "value"):
+        updates["category"] = updates["category"].value
+    if not updates:
+        return RecordResponse(success=False, message="没有需要更新的字段")
+    updated = update_record(record_id, updates)
+    if not updated:
+        return RecordResponse(success=False, message="记录不存在")
+    return RecordResponse(success=True, record=HealthRecord(**updated), message="修改成功")
+
+
+@app.delete("/api/records/{record_id}", response_model=RecordResponse)
+async def remove_record(record_id: str):
+    ok = delete_record(record_id)
+    if not ok:
+        return RecordResponse(success=False, message="记录不存在")
+    return RecordResponse(success=True, message="删除成功")
 
 
 @app.get("/api/summary/today", response_model=DaySummary)
