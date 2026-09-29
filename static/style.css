@@ -1,12 +1,14 @@
 /* ===== 配色变量 ===== */
 :root {
-    --mint: #97DABD;
-    --mint-light: #b8e6d4;
+    --mint: #35C8B4;          /* Menthe 青绿（主色） */
+    --mint-light: #C2F2E4;    /* Brume 浅青绿 */
     --slate: #405B68;
     --slate-light: #5a7a8a;
     --white: #F7FAF7;
-    --violet: #A78BFA;
-    --violet-light: #c4b5fd;
+    --violet: #9B7EDE;        /* 睡眠用紫 */
+    --violet-light: #C4B5FD;  /* 浅紫 */
+    --lime: #A4CF4A;          /* Verveine 黄绿（运动） */
+    --lime-light: #EDF7BE;    /* Limonade 浅黄绿 */
     --text-primary: #2d3e44;
     --text-secondary: #7a8f96;
     --card-bg: #ffffff;
@@ -238,7 +240,7 @@ body {
 
 #btn-send {
     padding: 12px 20px;
-    background: var(--slate);
+    background: #35C8B4;  /* Menthe */
     color: white;
     border: none;
     border-radius: 24px;
@@ -250,7 +252,7 @@ body {
 }
 
 #btn-send:hover {
-    background: var(--slate-light);
+    background: #2EB8A4;  /* 深一点的 Menthe */
 }
 
 #btn-send:disabled {
@@ -272,7 +274,7 @@ body {
 .profile-header-card {
     text-align: center;
     padding: 24px 16px;
-    background: linear-gradient(135deg, var(--mint), var(--violet-light));
+    background: var(--mint-light);
     border-radius: var(--radius);
     margin-bottom: 20px;
     box-shadow: var(--shadow);
@@ -358,7 +360,7 @@ body {
 .btn-save {
     width: 100%;
     padding: 14px;
-    background: linear-gradient(135deg, var(--mint), var(--violet));
+    background: var(--mint);
     color: white;
     border: none;
     border-radius: var(--radius);
@@ -388,7 +390,7 @@ body {
 .stats-header-card {
     text-align: center;
     padding: 20px 16px;
-    background: linear-gradient(135deg, var(--slate), var(--slate-light));
+    background: #35C8B4;  /* Menthe */
     border-radius: var(--radius);
     margin-bottom: 16px;
     color: white;
@@ -660,15 +662,15 @@ body {
 }
 
 .goal-fill.water {
-    background: linear-gradient(90deg, #4dd0e1, #00acc1);
+    background: #35C8B4;  /* Menthe */
 }
 
 .goal-fill.exercise {
-    background: linear-gradient(90deg, #81c784, #43a047);
+    background: #A4CF4A;  /* Verveine */
 }
 
 .goal-fill.sleep {
-    background: linear-gradient(90deg, #9fa8da, #5c6bc0);
+    background: #9B7EDE;  /* 睡眠紫 */
 }
 
 .goals-alerts {
@@ -728,15 +730,15 @@ body {
 }
 
 .wk-bar.water {
-    background: linear-gradient(0deg, #4dd0e1, #00acc1);
+    background: #35C8B4;  /* Menthe */
 }
 
 .wk-bar.exercise {
-    background: linear-gradient(0deg, #81c784, #43a047);
+    background: #A4CF4A;  /* Verveine */
 }
 
 .wk-bar.sleep {
-    background: linear-gradient(0deg, #9fa8da, #5c6bc0);
+    background: #9B7EDE;  /* 睡眠紫 */
 }
 
 .wk-label {
@@ -776,15 +778,15 @@ body {
 }
 
 .dot.water {
-    background: #00acc1;
+    background: #35C8B4;
 }
 
 .dot.exercise {
-    background: #43a047;
+    background: #A4CF4A;
 }
 
 .dot.sleep {
-    background: #5c6bc0;
+    background: #9B7EDE;
 }
 
 .wk-streaks {
@@ -801,10 +803,10 @@ body {
     font-size: 12.5px;
     line-height: 1.6;
     color: var(--text-primary);
-    background: rgba(77, 208, 225, 0.08);
+    background: rgba(53, 200, 180, 0.08);
     padding: 10px 12px;
     border-radius: var(--radius-sm);
-    border-left: 3px solid #4dd0e1;
+    border-left: 3px solid #35C8B4;
 }
 
 /* ===== 数据导出卡片 ===== */
@@ -848,9 +850,9 @@ body {
 
 .export-btn:hover {
     border-color: var(--mint);
-    background: rgba(77, 208, 225, 0.06);
+    background: rgba(53, 200, 180, 0.06);
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(77, 208, 225, 0.15);
+    box-shadow: 0 2px 8px rgba(53, 200, 180, 0.15);
 }
 
 .export-btn:active {

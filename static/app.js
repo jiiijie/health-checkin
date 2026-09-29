@@ -329,7 +329,11 @@ async function loadStats() {
     try {
         const res = await fetch("/api/records");
         const records = await res.json();
-        const todayStr = new Date().toISOString().split("T")[0];
+        // 用本地时间计算今日日期（而非 UTC），避免跨天时日期不一致
+        const now = new Date();
+        const todayStr = now.getFullYear() + '-' + 
+                         String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                         String(now.getDate()).padStart(2, '0');
         const todayRecords = records.filter((r) => r.date === todayStr);
 
         // 统计各项数量
