@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小眠 · AI健康打卡小管家</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="avatar">🌙</div>
+                <h1>小眠</h1>
+                <p class="subtitle">你的健康小管家</p>
+            </div>
+            <div class="sidebar-actions">
+                <button id="btn-summary" class="btn-summary" onclick="loadSummary()">
+                    📋 今日总结
+                </button>
+                <button id="btn-history" class="btn-history" onclick="loadHistory()">
+                    📅 历史记录
+                </button>
+            </div>
+            <div id="summary-panel" class="summary-panel hidden">
+                <h3>📊 今日总结</h3>
+                <div id="summary-content"></div>
+            </div>
+            <div id="history-panel" class="history-panel hidden">
+                <h3>📅 最近记录</h3>
+                <div id="history-content"></div>
+            </div>
+        </aside>
+
+        <main class="chat-area">
+            <div class="chat-header">
+                <span class="status-dot"></span>
+                <span>小眠在线 · 陪你健康每一天</span>
+            </div>
+            <div id="chat-messages" class="chat-messages">
+                <div class="message assistant">
+                    <div class="message-avatar">🌙</div>
+                    <div class="message-bubble">
+                        嗨～我是小眠，你的健康小管家！😊<br><br>
+                        告诉我你今天吃了什么、几点起床、坐了多久吧～<br>
+                        我会帮你记录，然后给你温柔的健康建议哦 💕
+                    </div>
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <div id="alerts-area"></div>
+                <div class="input-row">
+                    <input
+                        type="text"
+                        id="chat-input"
+                        placeholder="告诉小眠你今天吃了什么、几点睡..."
+                        onkeydown="if(event.key==='Enter')sendMessage()"
+                    >
+                    <button id="btn-send" onclick="sendMessage()">发送 ✨</button>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html>
