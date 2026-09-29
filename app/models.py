@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from enum import Enum
+from typing import Optional
 
 
 class HealthCategory(str, Enum):
@@ -33,3 +34,24 @@ class ChatResponse(BaseModel):
     reply: str
     records: list[HealthRecord] = []
     alerts: list[str] = []
+
+
+class UserProfile(BaseModel):
+    nickname: Optional[str] = None
+    gender: Optional[str] = None
+    age: Optional[float] = None
+    height: Optional[float] = None
+    weight: Optional[float] = None
+    waist: Optional[float] = None
+    arm: Optional[float] = None
+    leg: Optional[float] = None
+    chest: Optional[float] = None
+    target_weight: Optional[float] = None
+    daily_water: Optional[float] = 2000
+    daily_exercise: Optional[float] = 30
+    target_sleep: Optional[float] = 8
+
+
+class ProfileResponse(BaseModel):
+    success: bool = True
+    profile: Optional[dict] = None

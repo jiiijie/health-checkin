@@ -6,12 +6,14 @@ from pathlib import Path
 BASE_DIR = Path(__file__).parent.parent
 DATA_DIR = BASE_DIR / "data"
 RECORDS_FILE = DATA_DIR / "records.json"
+PROFILE_FILE = DATA_DIR / "profile.json"
 
 
 def _ensure_data_dir():
     DATA_DIR.mkdir(exist_ok=True)
 
 
+# ===== 打卡记录 =====
 def _load_all_records() -> list[dict]:
     _ensure_data_dir()
     if not RECORDS_FILE.exists():
@@ -44,3 +46,18 @@ def get_all_records(limit: int = 100) -> list[dict]:
 
 def get_today_str() -> str:
     return datetime.now().strftime("%Y-%m-%d")
+
+
+# ===== 个人档案 =====
+def load_profile() -> dict:
+    _ensure_data_dir()
+    if not PROFILE_FILE.exists():
+        return {}
+    with open(PROFILE_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_profile(profile: dict):
+    _ensure_data_dir()
+    with open(PROFILE_FILE, "w", encoding="utf-8") as f:
+        json.dump(profile, f, ensure_ascii=False, indent=2)

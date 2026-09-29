@@ -7,60 +7,241 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="app-container">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="avatar">🌙</div>
-                <h1>小眠</h1>
-                <p class="subtitle">你的健康小管家</p>
-            </div>
-            <div class="sidebar-actions">
-                <button id="btn-summary" class="btn-summary" onclick="loadSummary()">
-                    📋 今日总结
-                </button>
-                <button id="btn-history" class="btn-history" onclick="loadHistory()">
-                    📅 历史记录
-                </button>
-            </div>
-            <div id="summary-panel" class="summary-panel hidden">
-                <h3>📊 今日总结</h3>
-                <div id="summary-content"></div>
-            </div>
-            <div id="history-panel" class="history-panel hidden">
-                <h3>📅 最近记录</h3>
-                <div id="history-content"></div>
-            </div>
-        </aside>
+    <div class="app">
+        <!-- 顶部标题栏 -->
+        <header class="app-header">
+            <div class="header-logo">🌙</div>
+            <h1 class="header-title">小眠</h1>
+            <span class="header-subtitle">AI健康管家</span>
+        </header>
 
-        <main class="chat-area">
-            <div class="chat-header">
-                <span class="status-dot"></span>
-                <span>小眠在线 · 陪你健康每一天</span>
-            </div>
-            <div id="chat-messages" class="chat-messages">
-                <div class="message assistant">
-                    <div class="message-avatar">🌙</div>
-                    <div class="message-bubble">
-                        嗨～我是小眠，你的健康小管家！😊<br><br>
-                        告诉我你今天吃了什么、几点起床、坐了多久吧～<br>
-                        我会帮你记录，然后给你温柔的健康建议哦 💕
+        <!-- 主内容区 -->
+        <main class="app-main">
+            <!-- ========== 聊天页 ========== -->
+            <div class="page page-chat active" id="page-chat">
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message assistant">
+                        <div class="msg-avatar">🌙</div>
+                        <div class="msg-bubble">
+                            嗨～我是小眠，你的健康小管家！😊<br><br>
+                            告诉我你今天吃了什么、几点睡、坐了多久吧～<br>
+                            我会帮你记录，然后给你温柔的健康建议哦 💕
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 快捷操作栏 -->
+                <div class="quick-actions">
+                    <button class="quick-btn" data-type="water" onclick="showQuickInput('water')">
+                        <span class="quick-icon">💧</span>
+                        <span class="quick-label">喝水</span>
+                    </button>
+                    <button class="quick-btn" data-type="diet" onclick="showQuickInput('diet')">
+                        <span class="quick-icon">️</span>
+                        <span class="quick-label">饮食</span>
+                    </button>
+                    <button class="quick-btn" data-type="exercise" onclick="showQuickInput('exercise')">
+                        <span class="quick-icon">🏃</span>
+                        <span class="quick-label">运动</span>
+                    </button>
+                    <button class="quick-btn" data-type="sleep" onclick="showQuickInput('sleep')">
+                        <span class="quick-icon">😴</span>
+                        <span class="quick-label">睡眠</span>
+                    </button>
+                </div>
+
+                <!-- 输入区 -->
+                <div class="chat-input-area">
+                    <div id="alerts-area"></div>
+                    <div class="input-row">
+                        <input type="text" id="chat-input" placeholder="告诉小眠你今天的情况..." onkeydown="if(event.key==='Enter')sendMessage()">
+                        <button id="btn-send" onclick="sendMessage()">发送</button>
                     </div>
                 </div>
             </div>
-            <div class="chat-input-area">
-                <div id="alerts-area"></div>
-                <div class="input-row">
-                    <input
-                        type="text"
-                        id="chat-input"
-                        placeholder="告诉小眠你今天吃了什么、几点睡..."
-                        onkeydown="if(event.key==='Enter')sendMessage()"
-                    >
-                    <button id="btn-send" onclick="sendMessage()">发送 ✨</button>
+
+            <!-- ========== 档案页 ========== -->
+            <div class="page page-profile" id="page-profile">
+                <div class="profile-content">
+                    <div class="profile-header-card">
+                        <div class="profile-avatar-large"></div>
+                        <h2 class="profile-name" id="profile-display-name">点击编辑档案</h2>
+                        <p class="profile-hint">完善信息，小眠会给你更精准的建议</p>
+                    </div>
+
+                    <form id="profile-form" onsubmit="saveProfile(event)">
+                        <div class="form-section">
+                            <h3 class="section-title">基本信息</h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>昵称</label>
+                                    <input type="text" name="nickname" placeholder="怎么称呼你？" id="f-nickname">
+                                </div>
+                                <div class="form-group">
+                                    <label>性别</label>
+                                    <select name="gender" id="f-gender">
+                                        <option value="">请选择</option>
+                                        <option value="female">女</option>
+                                        <option value="male">男</option>
+                                        <option value="other">其他</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>年龄</label>
+                                    <input type="number" name="age" placeholder="岁" id="f-age" min="1" max="120">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="section-title">身体数据</h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>身高 (cm)</label>
+                                    <input type="number" name="height" placeholder="cm" id="f-height" min="50" max="250">
+                                </div>
+                                <div class="form-group">
+                                    <label>体重 (kg)</label>
+                                    <input type="number" name="weight" placeholder="kg" id="f-weight" min="20" max="300" step="0.1">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="section-title">身体维度</h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>腰围 (cm)</label>
+                                    <input type="number" name="waist" placeholder="cm" id="f-waist" step="0.1">
+                                </div>
+                                <div class="form-group">
+                                    <label>臂围 (cm)</label>
+                                    <input type="number" name="arm" placeholder="cm" id="f-arm" step="0.1">
+                                </div>
+                                <div class="form-group">
+                                    <label>腿围 (cm)</label>
+                                    <input type="number" name="leg" placeholder="cm" id="f-leg" step="0.1">
+                                </div>
+                                <div class="form-group">
+                                    <label>胸围 (cm)</label>
+                                    <input type="number" name="chest" placeholder="cm" id="f-chest" step="0.1">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="section-title">健康目标</h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>目标体重 (kg)</label>
+                                    <input type="number" name="target_weight" placeholder="kg" id="f-target-weight" step="0.1">
+                                </div>
+                                <div class="form-group">
+                                    <label>每日饮水 (ml)</label>
+                                    <input type="number" name="daily_water" placeholder="ml" id="f-daily-water" value="2000">
+                                </div>
+                                <div class="form-group">
+                                    <label>每日运动 (分钟)</label>
+                                    <input type="number" name="daily_exercise" placeholder="分钟" id="f-daily-exercise" value="30">
+                                </div>
+                                <div class="form-group">
+                                    <label>目标睡眠 (小时)</label>
+                                    <input type="number" name="target_sleep" placeholder="小时" id="f-target-sleep" value="8" step="0.5">
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-save">保存档案</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ========== 统计页 ========== -->
+            <div class="page page-stats" id="page-stats">
+                <div class="stats-content">
+                    <div class="stats-header-card">
+                        <h2>📊 健康概览</h2>
+                        <p class="stats-date" id="stats-date"></p>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon"></div>
+                            <div class="stat-value" id="stat-water">0</div>
+                            <div class="stat-label">今日饮水 (杯)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🍽️</div>
+                            <div class="stat-value" id="stat-diet">0</div>
+                            <div class="stat-label">今日饮食记录</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🏃</div>
+                            <div class="stat-value" id="stat-exercise">0</div>
+                            <div class="stat-label">今日运动记录</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">😴</div>
+                            <div class="stat-value" id="stat-sleep">0</div>
+                            <div class="stat-label">今日睡眠记录</div>
+                        </div>
+                    </div>
+
+                    <div class="stats-summary-card">
+                        <h3>📋 今日总结</h3>
+                        <div id="stats-summary-text" class="stats-summary-text">
+                            今天还没有打卡记录哦，快去和小眠聊聊吧～
+                        </div>
+                        <h3 style="margin-top:16px;">💡 健康建议</h3>
+                        <div id="stats-suggestion-text" class="stats-suggestion-text">
+                            记得记录今天的饮食和作息呀！
+                        </div>
+                    </div>
+
+                    <div class="stats-history-card">
+                        <h3>📅 最近记录</h3>
+                        <div id="stats-history-list" class="stats-history-list">
+                            <p class="empty-hint">暂无记录</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
+
+        <!-- 底部 Tab 导航 -->
+        <nav class="tab-bar">
+            <button class="tab-btn active" data-page="chat" onclick="switchTab('chat')">
+                <span class="tab-icon">💬</span>
+                <span class="tab-label">聊天</span>
+            </button>
+            <button class="tab-btn" data-page="profile" onclick="switchTab('profile')">
+                <span class="tab-icon">👤</span>
+                <span class="tab-label">档案</span>
+            </button>
+            <button class="tab-btn" data-page="stats" onclick="switchTab('stats')">
+                <span class="tab-icon">📊</span>
+                <span class="tab-label">统计</span>
+            </button>
+        </nav>
+
+        <!-- 快捷输入弹窗 -->
+        <div class="modal-overlay" id="quick-modal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 id="modal-title">快捷记录</h3>
+                    <button class="modal-close" onclick="closeQuickInput()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div id="modal-fields"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cancel" onclick="closeQuickInput()">取消</button>
+                    <button class="btn-confirm" onclick="submitQuickRecord()">记录</button>
+                </div>
+            </div>
+        </div>
     </div>
+
     <script src="/static/app.js"></script>
 </body>
 </html>

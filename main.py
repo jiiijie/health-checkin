@@ -8,9 +8,12 @@ from fastapi.responses import FileResponse
 from pathlib import Path
 from dotenv import load_dotenv
 
-from app.models import ChatRequest, ChatResponse, HealthRecord, DaySummary
+from app.models import ChatRequest, ChatResponse, HealthRecord, DaySummary, UserProfile, ProfileResponse
 from app.ai_service import chat_with_ai, generate_summary
-from app.data_store import save_record, get_records_by_date, get_all_records, get_today_str
+from app.data_store import (
+    save_record, get_records_by_date, get_all_records, get_today_str,
+    load_profile, save_profile,
+)
 
 # 使用绝对路径加载 .env 文件，避免 uvicorn reload 时工作目录变化导致找不到
 load_dotenv(Path(__file__).parent / ".env")
@@ -63,7 +66,7 @@ async def chat(req: ChatRequest):
     alerts = result.get("alerts", [])
     hour = datetime.now().hour
     if hour >= 23 or hour < 6:
-        alerts.append("🌙 已经很晚啦，早点休息对身体好哦～")
+        alerts.append("已经很晚啦，早点休息对身体好哦～")
 
     return ChatResponse(
         reply=result["reply"],
@@ -99,6 +102,19 @@ async def today_summary():
         suggestion=result.get("suggestion", ""),
         records=[HealthRecord(**r) for r in records],
     )
+
+
+# ===== 个人档案 API =====
+@app.get("/api/profile")
+async def get_profile():
+    return load_profile()
+
+
+@app.post("/api/profile", response_model=ProfileResponse)
+async def update_profile(profile: UserProfile):
+    data = profile.model_dump(exclude_none=True)
+    save_profile(data)
+    return ProfileResponse(success=True, profile=data)
 
 
 if __name__ == "__main__":
