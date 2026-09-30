@@ -56,8 +56,11 @@ def _is_meta_record(category: str, content: str) -> bool:
 def _detect_health_message(msg: str) -> dict | None:
     """关键词检测：当 AI 没返回 JSON 时，根据用户消息内容自动识别类别"""
     msg_lower = msg.lower()
-    # 饮水
-    if any(k in msg_lower for k in ["喝水", "喝了", "ml", "毫升", "一杯水", "一瓶水"]):
+    # 饮食（优先检测，因为"吃了""早餐"等关键词比"喝了"更具饮食特征）
+    if any(k in msg_lower for k in ["吃了", "早餐", "午餐", "晚餐", "早饭", "午饭", "晚饭", "外卖", "面包", "米饭", "面条", "鸡蛋", "牛奶", "番茄"]):
+        return {"category": "diet"}
+    # 饮水（用更精确的关键词，避免"喝了牛奶"被误判）
+    if any(k in msg_lower for k in ["喝水", "喝了杯水", "喝了瓶水", "ml", "毫升", "一杯水", "一瓶水", "喝了口水"]):
         return {"category": "water"}
     # 睡眠
     if any(k in msg_lower for k in ["睡觉", "睡了", "睡的", "入睡", "起床", "昨晚", "睡眠"]):
@@ -65,10 +68,49 @@ def _detect_health_message(msg: str) -> dict | None:
     # 运动
     if any(k in msg_lower for k in ["跑步", "运动", "健身", "游泳", "瑜伽", "散步", "骑车", "分钟"]):
         return {"category": "exercise"}
-    # 饮食
-    if any(k in msg_lower for k in ["吃了", "早餐", "午餐", "晚餐", "早饭", "午饭", "晚饭", "喝了一杯", "外卖"]):
-        return {"category": "diet"}
     return None
+
+
+# 常见食物关键词（用于校验 AI 分类是否正确）
+_FOOD_KEYWORDS = [
+    "面包", "米饭", "面条", "馒头", "包子", "饺子", "蛋糕", "饼干",
+    "鸡蛋", "蛋", "牛奶", "酸奶", "豆浆", "豆腐",
+    "鸡肉", "牛肉", "猪肉", "羊肉", "鱼", "虾", "蟹",
+    "青菜", "白菜", "菠菜", "西兰花", "番茄", "西红柿", "黄瓜", "胡萝卜", "土豆", "茄子",
+    "苹果", "香蕉", "橙子", "橘子", "梨", "西瓜", "葡萄", "草莓", "芒果",
+    "咖啡", "茶", "可乐", "雪碧", "果汁", "奶茶", "啤酒",
+    "薯片", "巧克力", "糖果", "坚果", "花生", "瓜子",
+    "早餐", "午餐", "晚餐", "早饭", "午饭", "晚饭", "外卖",
+    "吃了", "吃了一片", "吃了一个", "吃了一碗", "吃了个",
+]
+
+
+def _looks_like_food(content: str) -> bool:
+    """判断内容是否明显是食物（用于校验 AI 分类）"""
+    content_lower = content.lower()
+    return any(k in content_lower for k in _FOOD_KEYWORDS)
+
+
+# 餐次关键词（用于检测内容是否已有餐次标签）
+_MEAL_TAGS = ["早餐", "午餐", "晚餐", "加餐", "早饭", "午饭", "晚饭", "宵夜", "夜宵"]
+
+
+def _auto_meal_tag(content: str, hour: int) -> str:
+    """
+    根据时间自动给饮食内容加餐次标签（兜底逻辑）
+    - 如果内容已有餐次关键词，不重复加
+    - 6-10点→早餐，11-14点→午餐，17-21点→晚餐，其他→加餐
+    """
+    if any(tag in content for tag in _MEAL_TAGS):
+        return content  # 已有标签，不重复加
+    if 6 <= hour <= 10:
+        return f"早餐：{content}"
+    elif 11 <= hour <= 14:
+        return f"午餐：{content}"
+    elif 17 <= hour <= 21:
+        return f"晚餐：{content}"
+    else:
+        return f"加餐：{content}"
 
 
 async def _generate_and_save_summary(date_str: str) -> dict | None:
@@ -140,16 +182,24 @@ async def chat(req: ChatRequest):
     _persist_history(session_id, history)
 
     today = get_today_str()
-    now_str = datetime.now().strftime("%H:%M:%S")
-    now_iso = datetime.now().isoformat(timespec="seconds")
+    now = datetime.now()
+    now_str = now.strftime("%H:%M:%S")
+    now_iso = now.isoformat(timespec="seconds")
+    current_hour = now.hour
     saved_records = []
 
     for r in result.get("records", []):
         category = r.get("category", "other")
         content = r.get("content", "")
-        # 过滤掉“总结/查询请求”这类误记录的垃圾数据
+        # 过滤掉"总结/查询请求"这类误记录的垃圾数据
         if _is_meta_record(category, content):
             continue
+        # 校验分类：如果内容明显是食物但被分类为"饮水"，修正为"饮食"
+        if category == "water" and _looks_like_food(content):
+            category = "diet"
+        # 饮食记录自动加餐次标签
+        if category == "diet":
+            content = _auto_meal_tag(content, current_hour)
         record = {
             "id": str(uuid.uuid4()),
             "category": category,
@@ -157,7 +207,7 @@ async def chat(req: ChatRequest):
             "timestamp": now_str,
             "date": today,
             "datetime": now_iso,
-            "calories": estimate_calories(content) if category == "diet" else 0,
+            "calories": await estimate_calories(content) if category == "diet" else 0,
         }
         save_record(record)
         saved_records.append(record)
@@ -166,14 +216,17 @@ async def chat(req: ChatRequest):
     if not saved_records:
         fallback = _detect_health_message(req.message)
         if fallback:
+            content = req.message
+            if fallback["category"] == "diet":
+                content = _auto_meal_tag(content, current_hour)
             record = {
                 "id": str(uuid.uuid4()),
                 "category": fallback["category"],
-                "content": req.message,
+                "content": content,
                 "timestamp": now_str,
                 "date": today,
                 "datetime": now_iso,
-                "calories": estimate_calories(req.message) if fallback["category"] == "diet" else 0,
+                "calories": await estimate_calories(content) if fallback["category"] == "diet" else 0,
             }
             save_record(record)
             saved_records.append(record)
@@ -200,15 +253,20 @@ async def chat(req: ChatRequest):
 async def quick_record(req: QuickRecordRequest):
     # 1. 先直接保存记录（保证一定成功）
     today = get_today_str()
-    now_str = datetime.now().strftime("%H:%M:%S")
+    now = datetime.now()
+    now_str = now.strftime("%H:%M:%S")
+    content = req.content
+    # 饮食记录自动加餐次标签
+    if req.category.value == "diet":
+        content = _auto_meal_tag(content, now.hour)
     record = {
         "id": str(uuid.uuid4()),
         "category": req.category.value,
-        "content": req.content,
+        "content": content,
         "timestamp": now_str,
         "date": today,
-        "datetime": datetime.now().isoformat(timespec="seconds"),
-        "calories": estimate_calories(req.content) if req.category.value == "diet" else 0,
+        "datetime": now.isoformat(timespec="seconds"),
+        "calories": await estimate_calories(content) if req.category.value == "diet" else 0,
     }
     save_record(record)
 
@@ -272,7 +330,7 @@ async def modify_record(record_id: str, req: UpdateRecordRequest):
     # 编辑饮食记录时重算卡路里
     if updated.get("category") == "diet":
         from app.calories import estimate_calories
-        updated["calories"] = estimate_calories(updated.get("content", ""))
+        updated["calories"] = await estimate_calories(updated.get("content", ""))
         # 持久化卡路里更新
         records = get_all_records(limit=100000)
         for i, r in enumerate(records):

@@ -1,191 +1,153 @@
 """
 食物卡路里估算模块
-基于关键词匹配常见中式食物，计算摄入卡路里
+使用 AI（DeepSeek）根据食物描述智能估算卡路里
 """
+import os
+import json
+import re
+import logging
+import httpx
 
-# 常见食物卡路里字典（每 100g/每份的大卡）
-FOOD_CALORIES = {
-    # 主食类
-    "米饭": 116,
-    "白米饭": 116,
-    "面条": 110,
-    "方便面": 450,  # 每包
-    "泡面": 450,
-    "馒头": 223,
-    "包子": 250,
-    "饺子": 250,
-    "馄饨": 200,
-    "面包": 280,
-    "吐司": 280,
-    "蛋糕": 350,
-    "饼干": 450,
-    "粥": 46,
-    "小米粥": 46,
-    "红薯": 86,
-    "玉米": 112,
-    "土豆": 76,
-    
-    # 蛋白质类
-    "鸡蛋": 144,  # 每个约 72 大卡
-    "蛋": 144,
-    "牛奶": 54,  # 每 100ml
-    "酸奶": 72,
-    "豆浆": 30,
-    "豆腐": 80,
-    "鸡肉": 165,
-    "牛肉": 250,
-    "猪肉": 300,
-    "羊肉": 200,
-    "鱼": 100,
-    "虾": 90,
-    "蟹": 100,
-    
-    # 蔬菜类
-    "青菜": 20,
-    "白菜": 20,
-    "菠菜": 23,
-    "西兰花": 34,
-    "番茄": 18,
-    "西红柿": 18,
-    "黄瓜": 16,
-    "胡萝卜": 41,
-    "土豆": 76,
-    "茄子": 25,
-    "豆角": 30,
-    
-    # 水果类
-    "苹果": 52,
-    "香蕉": 89,
-    "橙子": 47,
-    "橘子": 44,
-    "梨": 50,
-    "西瓜": 30,
-    "葡萄": 45,
-    "草莓": 32,
-    "芒果": 60,
-    
-    # 饮品类
-    "咖啡": 5,
-    "茶": 0,
-    "可乐": 43,
-    "雪碧": 40,
-    "果汁": 45,
-    "奶茶": 80,
-    "啤酒": 43,
-    
-    # 零食/其他
-    "薯片": 530,
-    "巧克力": 550,
-    "糖果": 400,
-    "坚果": 600,
-    "花生": 560,
-    "瓜子": 550,
-}
+logger = logging.getLogger(__name__)
 
-# 数量关键词映射（转换为倍数）
-QUANTITY_KEYWORDS = {
-    "一碗": 1.5,
-    "一杯": 1,
-    "一瓶": 2,
-    "一包": 1,
-    "一个": 1,
-    "两个": 2,
-    "三个": 3,
-    "四个": 4,
-    "五个": 5,
-    "半碗": 0.75,
-    "半杯": 0.5,
-    "半包": 0.5,
-    "半个": 0.5,
-}
+DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
+
+CALORIE_PROMPT = """你是一个营养学专家。请根据用户描述的食物内容，估算总卡路里（大卡/kcal）。
+
+规则：
+1. 只返回一个 JSON 对象，格式为 {{"calories": 数字}}
+2. 数字为整数，表示总卡路里
+3. 如果无法判断或内容不是食物描述，返回 {{"calories": 0}}
+4. 考虑食物的分量（如"一碗""两个""一包"等）
+5. 如果是多道菜/多种食物，计算总和
+
+示例：
+- "午饭方便面一包，鸡蛋两个" → {{"calories": 594}}
+- "早餐一杯牛奶，两片吐司" → {{"calories": 388}}
+- "晚上吃了个苹果" → {{"calories": 52}}
+- "今天喝了杯水" → {{"calories": 0}}
+
+用户描述：{content}"""
 
 
-def estimate_calories(content: str) -> int:
+def _get_api_key() -> str:
+    key = os.getenv("DEEPSEEK_API_KEY", "")
+    if not key:
+        raise ValueError("未设置 DEEPSEEK_API_KEY 环境变量")
+    return key
+
+
+async def estimate_calories(content: str) -> int:
     """
-    根据食物内容估算卡路里
+    使用 AI 根据食物描述估算卡路里
     
     Args:
         content: 食物描述，如"午饭方便面一包，鸡蛋两个"
     
     Returns:
-        估算的卡路里（大卡）
+        估算的卡路里（大卡），AI 失败时返回 0
     """
     if not content:
         return 0
     
-    import re
-    total_calories = 0
-    content_lower = content.lower()
-    
-    # 找出所有匹配的食物，按名称长度降序排列（优先匹配长名称，避免"鸡蛋"和"蛋"重复）
-    matched_foods = []
-    for food, calories in FOOD_CALORIES.items():
-        if food in content_lower:
-            matched_foods.append((food, calories))
-    
-    # 按名称长度降序排列，优先匹配长关键词
-    matched_foods.sort(key=lambda x: len(x[0]), reverse=True)
-    
-    # 过滤掉被更长关键词覆盖的短匹配
-    # 例如："鸡蛋"已匹配时，跳过"蛋"
-    filtered = []
-    consumed_spans = []  # 已匹配的文本区间
-    for food, calories in matched_foods:
-        # 找到 food 在 content 中的位置
-        idx = content_lower.find(food)
-        if idx >= 0:
-            span = (idx, idx + len(food))
-            # 检查这个 span 是否已被更长的匹配覆盖
-            already_covered = False
-            for cs, ce in consumed_spans:
-                if span[0] >= cs and span[1] <= ce:
-                    already_covered = True
-                    break
-            if not already_covered:
-                filtered.append((food, calories))
-                consumed_spans.append(span)
-    
-    # 计算卡路里
-    for food, calories in filtered:
-        quantity = 1.0
-        # 检查是否有数量词
-        for qty_keyword, qty_multiplier in QUANTITY_KEYWORDS.items():
-            if qty_keyword in content_lower:
-                quantity = qty_multiplier
-                break
+    try:
+        api_key = _get_api_key()
+        prompt = CALORIE_PROMPT.format(content=content)
         
-        # 按个算的食物，提取数字
-        if "个" in content_lower:
-            match = re.search(r'(\d+)\s*个', content_lower)
-            if match:
-                quantity = int(match.group(1))
-            elif "两个" in content_lower:
-                quantity = 2
-            elif "三个" in content_lower:
-                quantity = 3
-        
-        total_calories += calories * quantity
-    
-    return round(total_calories)
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(
+                DEEPSEEK_API_URL,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "deepseek-chat",
+                    "messages": [
+                        {"role": "system", "content": "你是营养学专家，只返回 JSON。"},
+                        {"role": "user", "content": prompt},
+                    ],
+                    "temperature": 0.3,
+                    "max_tokens": 50,
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+            ai_content = data["choices"][0]["message"]["content"]
+            
+            # 提取 JSON
+            json_match = re.search(r'\{[^}]*"calories"\s*:\s*(\d+)[^}]*\}', ai_content)
+            if json_match:
+                calories = int(json_match.group(1))
+                # 合理性检查：单次饮食不超过 3000 大卡
+                if 0 <= calories <= 3000:
+                    logger.info(f"[Calories AI] '{content}' → {calories} kcal")
+                    return calories
+                else:
+                    logger.warning(f"[Calories AI] 异常值 {calories}，内容: '{content}'")
+                    return 0
+            
+            logger.warning(f"[Calories AI] 无法解析 JSON: {ai_content[:100]}")
+            return 0
+            
+    except Exception as e:
+        logger.error(f"[Calories AI] 估算失败: {e}")
+        return 0
 
 
-def get_calorie_level(calories: int) -> str:
+def _calc_tdee(profile: dict) -> int:
     """
-    根据卡路里给出评价
+    用 Mifflin-St Jeor 公式计算每日总能量消耗（TDEE）
     
     Args:
-        calories: 卡路里数值
+        profile: 用户档案，包含 height(cm), weight(kg), age, gender
+    
+    Returns:
+        TDEE（大卡），无法计算时返回 2200（默认值）
+    """
+    height = profile.get("height")
+    weight = profile.get("weight")
+    age = profile.get("age")
+    gender = profile.get("gender", "")
+    
+    if not all([height, weight, age]):
+        return 2200  # 默认值
+    
+    # Mifflin-St Jeor 公式
+    if gender == "男" or gender == "male":
+        bmr = 10 * weight + 6.25 * height - 5 * age + 5
+    else:
+        bmr = 10 * weight + 6.25 * height - 5 * age - 161
+    
+    # 活动系数（默认轻度活动 1.375）
+    activity_factor = 1.375
+    return round(bmr * activity_factor)
+
+
+def get_calorie_level(calories: int, profile: dict = None) -> str:
+    """
+    根据卡路里和用户档案给出个性化评价
+    
+    Args:
+        calories: 已摄入卡路里
+        profile: 用户档案（可选）
     
     Returns:
         评价文本
     """
     if calories == 0:
         return "还没记录饮食哦"
-    elif calories < 300:
-        return "吃得有点少呢"
-    elif calories < 500:
-        return "摄入量适中"
-    elif calories < 800:
-        return "营养不错哦"
+    
+    tdee = _calc_tdee(profile or {})
+    ratio = calories / tdee  # 摄入占比
+    
+    if ratio < 0.3:
+        return "吃得有点少呢，记得补充能量哦～"
+    elif ratio < 0.6:
+        return "摄入还不到一半，继续加油！"
+    elif ratio < 0.85:
+        return "摄入量适中，保持节奏～"
+    elif ratio <= 1.1:
+        return "营养不错哦，今天吃得刚刚好！"
     else:
-        return "今天吃得有点多呢"
+        return "今天吃得有点多呢，注意控制哦～"

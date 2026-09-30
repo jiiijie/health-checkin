@@ -381,7 +381,7 @@ body {
 .page-stats {
     overflow-y: auto;
     padding: 16px;
-    background: var(--white);
+    background: #f0f2f5;
 }
 
 .stats-content {
@@ -418,47 +418,72 @@ body {
 .stat-card {
     background: var(--card-bg);
     border-radius: var(--radius);
-    padding: 16px;
+    padding: 14px 16px;
     text-align: center;
     box-shadow: var(--shadow);
     transition: transform 0.2s;
+    position: relative;
+    overflow: hidden;
 }
+
+.stat-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+}
+
+.stat-card[data-type="water"]::before { background: #35C8B4; }
+.stat-card[data-type="water"] { background: rgba(53, 200, 180, 0.04); }
+.stat-card[data-type="diet"]::before { background: #FF8A65; }
+.stat-card[data-type="diet"] { background: rgba(255, 138, 101, 0.04); }
+.stat-card[data-type="exercise"]::before { background: #A4CF4A; }
+.stat-card[data-type="exercise"] { background: rgba(164, 207, 74, 0.04); }
+.stat-card[data-type="sleep"]::before { background: #9B7EDE; }
+.stat-card[data-type="sleep"] { background: rgba(155, 126, 222, 0.04); }
 
 .stat-card:hover {
     transform: translateY(-2px);
 }
 
 .stat-icon {
-    font-size: 28px;
-    margin-bottom: 6px;
+    font-size: 20px;
+    margin-bottom: 4px;
+    opacity: 0.85;
 }
 
 .stat-value {
-    font-size: 28px;
-    font-weight: 800;
+    font-size: 22px;
+    font-weight: 700;
     color: var(--slate);
     margin-bottom: 2px;
+    line-height: 1.2;
 }
 
 .stat-label {
     font-size: 11px;
     color: var(--text-secondary);
+    font-weight: 400;
 }
 
 /* ===== 卡路里卡片 ===== */
 .calorie-card {
-    background: #FF6B6B;
+    background: var(--card-bg);
     border-radius: var(--radius);
     padding: 16px 20px;
     margin-bottom: 16px;
     display: flex;
     align-items: center;
-    gap: 16px;
-    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+    gap: 14px;
+    box-shadow: var(--shadow);
+    border-left: 4px solid #FF6B6B;
 }
 
 .calorie-icon {
-    font-size: 36px;
+    font-size: 28px;
+    opacity: 0.8;
 }
 
 .calorie-info {
@@ -466,23 +491,43 @@ body {
 }
 
 .calorie-value {
-    font-size: 24px;
-    font-weight: 800;
-    color: white;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.3;
+}
+
+.calorie-value span {
+    color: #FF6B6B;
 }
 
 .calorie-label {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.9);
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 400;
 }
 
 .calorie-level {
-    font-size: 13px;
-    color: white;
-    background: rgba(255, 255, 255, 0.2);
-    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: rgba(255, 107, 107, 0.08);
+    padding: 5px 12px;
     border-radius: 20px;
     white-space: nowrap;
+    font-weight: 500;
+}
+
+/* 深色模式卡路里卡片 */
+[data-theme="dark"] .calorie-card {
+    border-left-color: #ff8a80;
+}
+
+[data-theme="dark"] .calorie-value span {
+    color: #ff8a80;
+}
+
+[data-theme="dark"] .calorie-level {
+    background: rgba(255, 138, 128, 0.1);
 }
 
 .stats-summary-card {
@@ -508,10 +553,29 @@ body {
     background: var(--white);
     border-radius: var(--radius-sm);
     border-left: 3px solid var(--mint);
+    position: relative;
+    padding-left: 32px;
+}
+
+.stats-summary-text::before {
+    content: "📋";
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    font-size: 14px;
 }
 
 .stats-suggestion-text {
     border-left-color: var(--violet);
+    margin-top: 10px;
+}
+
+.stats-suggestion-text::before {
+    content: "💡";
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    font-size: 14px;
 }
 
 .stats-history-card {
@@ -1271,6 +1335,17 @@ body {
     background: #252836;
 }
 
+/* 深色模式统计页背景 */
+[data-theme="dark"] .page-stats {
+    background: #0f1118;
+}
+
+/* 深色模式统计卡片背景 */
+[data-theme="dark"] .stat-card[data-type="water"] { background: rgba(53, 200, 180, 0.06); }
+[data-theme="dark"] .stat-card[data-type="diet"] { background: rgba(255, 138, 101, 0.06); }
+[data-theme="dark"] .stat-card[data-type="exercise"] { background: rgba(164, 207, 74, 0.06); }
+[data-theme="dark"] .stat-card[data-type="sleep"] { background: rgba(155, 126, 222, 0.06); }
+
 [data-theme="dark"] .stats-goals-card h3 {
     color: var(--slate);
 }
@@ -1440,4 +1515,210 @@ body {
 body, .app, .app-header, .page, .card, .stat-card,
 .msg-bubble, .quick-btn, .tab-bar, .modal {
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* ============================================= */
+/* ===== Toast 提示 ===== */
+/* ============================================= */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+    max-width: 400px;
+    width: 90%;
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    opacity: 0;
+    transform: translateY(-12px);
+    transition: all 0.3s ease;
+    pointer-events: auto;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast.hide {
+    opacity: 0;
+    transform: translateY(-12px);
+}
+
+.toast-success {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border-left: 4px solid #43a047;
+}
+
+.toast-error {
+    background: #ffebee;
+    color: #c62828;
+    border-left: 4px solid #e53935;
+}
+
+.toast-warning {
+    background: #fff8e1;
+    color: #b28704;
+    border-left: 4px solid #ffc93c;
+}
+
+.toast-info {
+    background: #e3f2fd;
+    color: #1565c0;
+    border-left: 4px solid #42a5f5;
+}
+
+.toast-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+/* 深色模式 Toast */
+[data-theme="dark"] .toast-success {
+    background: #1a2a1a;
+    color: #66bb6a;
+    border-left-color: #388e3c;
+}
+
+[data-theme="dark"] .toast-error {
+    background: #2a1515;
+    color: #ef5350;
+    border-left-color: #c62828;
+}
+
+[data-theme="dark"] .toast-warning {
+    background: #2a2a18;
+    color: #ffd54f;
+    border-left-color: #f9a825;
+}
+
+[data-theme="dark"] .toast-info {
+    background: #152535;
+    color: #64b5f6;
+    border-left-color: #1e88e5;
+}
+
+/* ============================================= */
+/* ===== 确认弹窗 ===== */
+/* ============================================= */
+.confirm-modal {
+    text-align: center;
+    padding: 24px 20px;
+    max-width: 320px;
+    margin: 0 auto;
+    border-radius: var(--radius);
+}
+
+.confirm-modal h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.confirm-modal p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.btn-danger {
+    background: #e53935 !important;
+    color: white !important;
+}
+
+.btn-danger:hover {
+    background: #c62828 !important;
+}
+
+[data-theme="dark"] .btn-danger {
+    background: #b71c1c !important;
+}
+
+[data-theme="dark"] .btn-danger:hover {
+    background: #d32f2f !important;
+}
+
+/* ============================================= */
+/* ===== 日期导航 ===== */
+/* ============================================= */
+.history-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.history-card-header h3 {
+    font-size: 14px;
+    color: var(--slate);
+    margin: 0;
+    flex: 1;
+    text-align: center;
+}
+
+.date-nav-btn {
+    width: 32px;
+    height: 32px;
+    border: 1.5px solid rgba(64, 91, 104, 0.12);
+    border-radius: 50%;
+    background: var(--white);
+    color: var(--text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.date-nav-btn:hover {
+    border-color: var(--mint);
+    color: var(--mint);
+    background: var(--mint-light);
+    transform: scale(1.1);
+}
+
+.date-nav-btn:active {
+    transform: scale(0.95);
+}
+
+/* 深色模式日期导航 */
+[data-theme="dark"] .date-nav-btn {
+    background: #252836;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .date-nav-btn:hover {
+    border-color: var(--mint);
+    background: var(--mint-light);
+}
+
+/* ============================================= */
+/* ===== 快捷弹窗关闭动画 ===== */
+/* ============================================= */
+#quick-modal.closing .modal {
+    animation: slideDown 0.25s ease forwards;
+}
+
+@keyframes slideDown {
+    from { transform: translateY(0); }
+    to { transform: translateY(100%); }
 }

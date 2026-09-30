@@ -70,6 +70,115 @@ const QUICK_INPUT_CONFIG = {
     },
 };
 
+// ===== Toast 提示系统 =====
+function showToast(message, type = "success") {
+    const container = document.getElementById("toast-container");
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+    const icons = { success: "✅", error: "❌", info: "ℹ️", warning: "⚠️" };
+    toast.innerHTML = `<span class="toast-icon">${icons[type] || "✅"}</span><span>${message}</span>`;
+    container.appendChild(toast);
+    // 触发重排后加动画类
+    requestAnimationFrame(() => toast.classList.add("show"));
+    setTimeout(() => {
+        toast.classList.remove("show");
+        toast.classList.add("hide");
+        setTimeout(() => toast.remove(), 300);
+    }, 2500);
+}
+
+// ===== 自定义确认弹窗 =====
+let _confirmCallback = null;
+
+function showConfirm(title, message, onConfirm) {
+    _confirmCallback = onConfirm;
+    document.getElementById("confirm-title").textContent = title;
+    document.getElementById("confirm-message").textContent = message;
+    document.getElementById("confirm-modal").classList.add("show");
+}
+
+function closeConfirmModal() {
+    document.getElementById("confirm-modal").classList.remove("show");
+    _confirmCallback = null;
+}
+
+function confirmAction() {
+    if (_confirmCallback) _confirmCallback();
+    closeConfirmModal();
+}
+
+// ===== 历史记录日期导航 =====
+let historyDateOffset = 0; // 0=今天, -1=昨天, -2=前天...
+
+function changeHistoryDate(delta) {
+    historyDateOffset += delta;
+    if (historyDateOffset > 0) historyDateOffset = 0; // 不能超过今天
+    loadHistoryRecords();
+}
+
+function getHistoryDateStr() {
+    const now = new Date();
+    now.setDate(now.getDate() + historyDateOffset);
+    return now.getFullYear() + '-' +
+           String(now.getMonth() + 1).padStart(2, '0') + '-' +
+           String(now.getDate()).padStart(2, '0');
+}
+
+function formatDateTitle(dateStr) {
+    const d = new Date(dateStr + "T00:00:00");
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const diff = Math.round((today - d) / 86400000);
+    const weekdays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+    const wd = weekdays[d.getDay()];
+    if (diff === 0) return `📅 今天 (${dateStr.slice(5).replace("-", "/")}  ${wd})`;
+    if (diff === 1) return `📅 昨天 (${dateStr.slice(5).replace("-", "/")}  ${wd})`;
+    if (diff === 2) return `📅 前天 (${dateStr.slice(5).replace("-", "/")}  ${wd})`;
+    return `📅 ${dateStr.slice(5).replace("-", "/")}  ${wd}`;
+}
+
+async function loadHistoryRecords() {
+    const dateStr = getHistoryDateStr();
+    const titleEl = document.getElementById("history-date-title");
+    if (titleEl) titleEl.textContent = formatDateTitle(dateStr);
+
+    const historyList = document.getElementById("stats-history-list");
+    if (!historyList) return;
+
+    try {
+        const res = await fetch(`/api/records?date=${dateStr}`);
+        const records = await res.json();
+
+        if (records.length === 0) {
+            historyList.innerHTML = '<p class="empty-hint">这天没有记录哦</p>';
+            return;
+        }
+        historyList.innerHTML = "";
+        const reversed = [...records].reverse();
+        reversed.forEach((r) => {
+            const label = CATEGORY_LABELS[r.category] || r.category;
+            const div = document.createElement("div");
+            div.className = "history-item";
+            const calText = (r.category === "diet" && r.calories) ? `<span class="calorie-tag">${r.calories} 大卡</span>` : "";
+            div.innerHTML = `
+                <span class="history-time">${r.timestamp}</span>
+                <span class="history-content">
+                    <span class="category-tag ${r.category}">${label}</span>
+                    ${r.content}
+                    ${calText}
+                </span>
+                <span class="history-actions">
+                    <button class="action-btn" title="编辑" onclick="showEditModal('${r.id}')">✏️</button>
+                    <button class="action-btn" title="删除" onclick="deleteRecord('${r.id}')">🗑️</button>
+                </span>
+            `;
+            historyList.appendChild(div);
+        });
+    } catch (err) {
+        console.error("加载历史记录失败", err);
+    }
+}
+
 let currentQuickType = null;
 
 // ===== Tab 切换 =====
@@ -80,8 +189,13 @@ function switchTab(page) {
     document.getElementById(`page-${page}`).classList.add("active");
     document.querySelector(`.tab-btn[data-page="${page}"]`).classList.add("active");
 
-    if (page === "stats") loadStats();
+    if (page === "stats") { historyDateOffset = 0; loadStats(); }
     if (page === "profile") loadProfile();
+    if (page === "chat") {
+        // 优化 4：切换到聊天页时自动滚到底部
+        const chatMessages = document.getElementById("chat-messages");
+        if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
 }
 
 // ===== 聊天功能 =====
@@ -223,8 +337,13 @@ function showQuickInput(type) {
 }
 
 function closeQuickInput() {
-    document.getElementById("quick-modal").classList.remove("show");
-    currentQuickType = null;
+    // 优化 5：关闭动画（先加 closing 类，等动画结束后再移除 show）
+    const modal = document.getElementById("quick-modal");
+    modal.classList.add("closing");
+    setTimeout(() => {
+        modal.classList.remove("show", "closing");
+        currentQuickType = null;
+    }, 250);
 }
 
 async function submitQuickRecord() {
@@ -343,15 +462,68 @@ async function saveProfile(e) {
         const result = await res.json();
         if (result.success) {
             document.getElementById("profile-display-name").textContent = data.nickname || "我的档案";
-            alert("档案保存成功！");
+            showToast("档案保存成功！");
         }
     } catch (err) {
-        alert("保存失败，请重试");
+        showToast("保存失败，请重试", "error");
         console.error(err);
     }
 }
 
 // ===== 统计页 =====
+
+// 缓存用户档案（用于 TDEE 计算）
+let _cachedProfile = null;
+
+async function getProfile() {
+    if (_cachedProfile) return _cachedProfile;
+    try {
+        const res = await fetch("/api/profile");
+        _cachedProfile = await res.json();
+    } catch (e) {
+        _cachedProfile = {};
+    }
+    return _cachedProfile;
+}
+
+// Mifflin-St Jeor 公式计算 TDEE
+function calcTDEE(profile) {
+    const height = profile.height;
+    const weight = profile.weight;
+    const age = profile.age;
+    const gender = profile.gender || "";
+    if (!height || !weight || !age) return 2200;
+    const bmr = gender === "男" || gender === "male"
+        ? 10 * weight + 6.25 * height - 5 * age + 5
+        : 10 * weight + 6.25 * height - 5 * age - 161;
+    return Math.round(bmr * 1.375); // 轻度活动系数
+}
+
+function updateCalorieLevel(calories) {
+    const el = document.getElementById("calorie-level");
+    if (!el) return;
+    if (calories === 0) {
+        el.textContent = "还没记录饮食哦";
+        return;
+    }
+    // 异步加载档案计算 TDEE
+    getProfile().then((profile) => {
+        const tdee = calcTDEE(profile);
+        const ratio = calories / tdee;
+        if (ratio < 0.3) {
+            el.textContent = "吃得有点少呢，记得补充能量哦～";
+        } else if (ratio < 0.6) {
+            el.textContent = "摄入还不到一半，继续加油！";
+        } else if (ratio < 0.85) {
+            el.textContent = "摄入量适中，保持节奏～";
+        } else if (ratio <= 1.1) {
+            el.textContent = "营养不错哦，今天吃得刚刚好！";
+        } else {
+            el.textContent = "今天吃得有点多呢，注意控制哦～";
+        }
+    });
+}
+
 async function loadStats() {
     const today = new Date().toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric", weekday: "long" });
     document.getElementById("stats-date").textContent = today;
@@ -386,19 +558,8 @@ async function loadStats() {
         });
         document.getElementById("stat-calories").textContent = totalCalories;
         
-        // 更新卡路里评价
-        const calorieLevel = document.getElementById("calorie-level");
-        if (totalCalories === 0) {
-            calorieLevel.textContent = "还没记录饮食哦";
-        } else if (totalCalories < 300) {
-            calorieLevel.textContent = "吃得有点少呢";
-        } else if (totalCalories < 500) {
-            calorieLevel.textContent = "摄入量适中";
-        } else if (totalCalories < 800) {
-            calorieLevel.textContent = "营养不错哦";
-        } else {
-            calorieLevel.textContent = "今天吃得有点多呢";
-        }
+        // 更新卡路里评价（基于 TDEE 个性化评价）
+        updateCalorieLevel(totalCalories);
 
         // 加载目标进度 + 提醒
         loadGoals();
@@ -419,33 +580,8 @@ async function loadStats() {
             // 忽略
         }
 
-        // 加载历史记录
-        const historyList = document.getElementById("stats-history-list");
-        if (todayRecords.length === 0) {
-            historyList.innerHTML = '<p class="empty-hint">今天还没有记录哦</p>';
-        } else {
-            historyList.innerHTML = "";
-            const reversed = [...todayRecords].reverse();
-            reversed.forEach((r) => {
-                const label = CATEGORY_LABELS[r.category] || r.category;
-                const div = document.createElement("div");
-                div.className = "history-item";
-                const calText = (r.category === "diet" && r.calories) ? `<span class="calorie-tag">${r.calories} 大卡</span>` : "";
-                div.innerHTML = `
-                    <span class="history-time">${r.timestamp}</span>
-                    <span class="history-content">
-                        <span class="category-tag ${r.category}">${label}</span>
-                        ${r.content}
-                        ${calText}
-                    </span>
-                    <span class="history-actions">
-                        <button class="action-btn" title="编辑" onclick="showEditModal('${r.id}')">✏️</button>
-                        <button class="action-btn" title="删除" onclick="deleteRecord('${r.id}')">🗑️</button>
-                    </span>
-                `;
-                historyList.appendChild(div);
-            });
-        }
+        // 加载历史记录（支持日期导航）
+        loadHistoryRecords();
     } catch (err) {
         console.error("加载统计失败", err);
     }
@@ -578,7 +714,7 @@ async function showEditModal(recordId) {
         const res = await fetch(`/api/records/${recordId}`);
         const data = await res.json();
         if (!data.success || !data.record) {
-            alert("记录不存在，可能已被删除");
+            showToast("记录不存在，可能已被删除", "warning");
             return;
         }
         editingRecordId = recordId;
@@ -587,7 +723,7 @@ async function showEditModal(recordId) {
         document.getElementById("edit-modal").classList.add("show");
     } catch (err) {
         console.error("打开编辑弹窗失败", err);
-        alert("操作失败，请重试");
+        showToast("操作失败，请重试", "error");
     }
 }
 
@@ -602,7 +738,7 @@ async function saveRecordEdit() {
     const category = document.getElementById("edit-category").value;
     const content = document.getElementById("edit-content").value.trim();
     if (!content) {
-        alert("内容不能为空");
+        showToast("内容不能为空", "warning");
         return;
     }
 
@@ -615,31 +751,34 @@ async function saveRecordEdit() {
         const data = await res.json();
         if (data.success) {
             closeEditModal();
+            showToast("修改成功！");
             loadStats();
         } else {
-            alert(data.message || "修改失败");
+            showToast(data.message || "修改失败", "error");
         }
     } catch (err) {
         console.error("修改失败", err);
-        alert("修改失败，请重试");
+        showToast("修改失败，请重试", "error");
     }
 }
 
 async function deleteRecord(recordId) {
-    if (!confirm("确定删除这条记录吗？")) return;
-
-    try {
-        const res = await fetch(`/api/records/${recordId}`, { method: "DELETE" });
-        const data = await res.json();
-        if (data.success) {
-            loadStats();
-        } else {
-            alert(data.message || "删除失败");
+    // 优化 1：自定义确认弹窗替代浏览器 confirm()
+    showConfirm("确认删除", "确定删除这条记录吗？删除后无法恢复。", async () => {
+        try {
+            const res = await fetch(`/api/records/${recordId}`, { method: "DELETE" });
+            const data = await res.json();
+            if (data.success) {
+                showToast("已删除");
+                loadStats();
+            } else {
+                showToast(data.message || "删除失败", "error");
+            }
+        } catch (err) {
+            console.error("删除失败", err);
+            showToast("删除失败，请重试", "error");
         }
-    } catch (err) {
-        console.error("删除失败", err);
-        alert("删除失败，请重试");
-    }
+    });
 }
 
 // ===== 数据导出 =====
@@ -647,7 +786,7 @@ async function exportData(type, fmt) {
     try {
         const res = await fetch(`/api/export/${type}?fmt=${fmt}`);
         if (!res.ok) {
-            alert("导出失败，请重试");
+            showToast("导出失败，请重试", "error");
             return;
         }
         const blob = await res.blob();
@@ -665,6 +804,6 @@ async function exportData(type, fmt) {
         window.URL.revokeObjectURL(url);
     } catch (err) {
         console.error("导出失败", err);
-        alert("导出失败，请重试");
+        showToast("导出失败，请重试", "error");
     }
 }

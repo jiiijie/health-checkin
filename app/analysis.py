@@ -146,11 +146,28 @@ def build_alerts(goals: dict, records: list[dict], now: datetime) -> list[str]:
     diet_hours = sorted(
         t / 3600.0 for t in (_to_seconds(r.get("timestamp", "")) for r in records if r.get("category") == "diet") if t is not None
     )
+    
+    # 同时检查内容关键词，支持延迟记录（如早上吃的但下午才记录）
+    meal_keywords = {
+        "早餐": ["早餐", "早饭", "early breakfast", "morning meal"],
+        "午餐": ["午餐", "午饭", "中餐", "lunch"],
+        "晚餐": ["晚餐", "晚饭", "dinner", "supper"],
+    }
+    
     meal_windows = [("早餐", 6, 10), ("午餐", 11, 14), ("晚餐", 17, 21)]
-    missing = [
-        name for name, s, e in meal_windows
-        if hour > e and not any(s - 1 <= h <= e + 1 for h in diet_hours)
-    ]
+    missing = []
+    for name, s, e in meal_windows:
+        # 检查时间窗口内是否有记录
+        has_time_record = any(s - 1 <= h <= e + 1 for h in diet_hours)
+        # 检查内容是否包含该餐关键词
+        has_keyword_record = any(
+            any(kw in r.get("content", "").lower() for kw in meal_keywords[name])
+            for r in records if r.get("category") == "diet"
+        )
+        # 当前时间已过窗口，且既没有时间记录也没有关键词记录
+        if hour > e and not has_time_record and not has_keyword_record:
+            missing.append(name)
+    
     if missing:
         alerts.append("🍽️ " + "、".join(missing) + "好像没记录到进食哦，尽量三餐规律，别饿着自己～")
     if any(h >= 22 or h < 5 for h in diet_hours):

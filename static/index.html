@@ -166,22 +166,22 @@
                     </div>
 
                     <div class="stats-grid">
-                        <div class="stat-card">
+                        <div class="stat-card" data-type="water">
                             <div class="stat-icon">💧</div>
                             <div class="stat-value" id="stat-water">0</div>
                             <div class="stat-label">今日饮水 (杯)</div>
                         </div>
-                        <div class="stat-card">
+                        <div class="stat-card" data-type="diet">
                             <div class="stat-icon">🍽️</div>
                             <div class="stat-value" id="stat-diet">0</div>
                             <div class="stat-label">今日饮食记录</div>
                         </div>
-                        <div class="stat-card">
+                        <div class="stat-card" data-type="exercise">
                             <div class="stat-icon">🏃</div>
                             <div class="stat-value" id="stat-exercise">0</div>
                             <div class="stat-label">今日运动记录</div>
                         </div>
-                        <div class="stat-card">
+                        <div class="stat-card" data-type="sleep">
                             <div class="stat-icon">😴</div>
                             <div class="stat-value" id="stat-sleep">0</div>
                             <div class="stat-label">今日睡眠记录</div>
@@ -189,7 +189,7 @@
                     </div>
 
                     <div class="calorie-card">
-                        <div class="calorie-icon"></div>
+                        <div class="calorie-icon">🔥</div>
                         <div class="calorie-info">
                             <div class="calorie-value"><span id="stat-calories">0</span> 大卡</div>
                             <div class="calorie-label">今日摄入</div>
@@ -228,14 +228,17 @@
                         <div id="stats-summary-text" class="stats-summary-text">
                             今天还没有打卡记录哦，快去和小眠聊聊吧～
                         </div>
-                        <h3 style="margin-top:16px;">💡 健康建议</h3>
                         <div id="stats-suggestion-text" class="stats-suggestion-text">
                             记得记录今天的饮食和作息呀！
                         </div>
                     </div>
 
                     <div class="stats-history-card">
-                        <h3>📅 最近记录</h3>
+                        <div class="history-card-header">
+                            <button class="date-nav-btn" onclick="changeHistoryDate(-1)">◀</button>
+                            <h3 id="history-date-title">📅 最近记录</h3>
+                            <button class="date-nav-btn" onclick="changeHistoryDate(1)">▶</button>
+                        </div>
                         <div id="stats-history-list" class="stats-history-list">
                             <p class="empty-hint">暂无记录</p>
                         </div>
@@ -277,6 +280,21 @@
                 <span class="tab-label">统计</span>
             </button>
         </nav>
+
+        <!-- Toast 提示 -->
+        <div class="toast-container" id="toast-container"></div>
+
+        <!-- 删除确认弹窗 -->
+        <div class="modal-overlay" id="confirm-modal">
+            <div class="modal confirm-modal">
+                <h3 id="confirm-title">确认删除</h3>
+                <p id="confirm-message">确定删除这条记录吗？</p>
+                <div class="modal-footer">
+                    <button class="btn-cancel" onclick="closeConfirmModal()">取消</button>
+                    <button class="btn-confirm btn-danger" id="confirm-ok-btn" onclick="confirmAction()">删除</button>
+                </div>
+            </div>
+        </div>
 
         <!-- 快捷输入弹窗 -->
         <div class="modal-overlay" id="quick-modal">
@@ -326,6 +344,6 @@
         </div>
     </div>
 
-    <script src="/static/app.js?v=11"></script>
+    <script src="/static/app.js?v=12"></script>
 </body>
 </html>
