@@ -22,6 +22,7 @@ class HealthRecord(BaseModel):
     timestamp: str = ""
     date: str = ""
     datetime: str = ""  # ISO 8601 完整时间戳，如 2026-09-29T14:30:00（新增兼容字段）
+    calories: int = 0  # 卡路里（大卡），仅饮食记录有值
 
 
 class DaySummary(BaseModel):

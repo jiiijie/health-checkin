@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>小眠 · AI健康打卡小管家</title>
-    <link rel="stylesheet" href="/static/style.css?v=9">
+    <link rel="stylesheet" href="/static/style.css?v=11">
 </head>
 <body>
     <div class="app">
@@ -13,6 +13,7 @@
             <div class="header-logo">🌙</div>
             <h1 class="header-title">小眠</h1>
             <span class="header-subtitle">AI健康管家</span>
+            <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="切换深色模式">🌙</button>
         </header>
 
         <!-- 主内容区 -->
@@ -187,6 +188,15 @@
                         </div>
                     </div>
 
+                    <div class="calorie-card">
+                        <div class="calorie-icon"></div>
+                        <div class="calorie-info">
+                            <div class="calorie-value"><span id="stat-calories">0</span> 大卡</div>
+                            <div class="calorie-label">今日摄入</div>
+                        </div>
+                        <div class="calorie-level" id="calorie-level">还没记录饮食哦</div>
+                    </div>
+
                     <div class="stats-goals-card">
                         <h3>🎯 今日目标</h3>
                         <div id="goals-list">
@@ -316,6 +326,6 @@
         </div>
     </div>
 
-    <script src="/static/app.js?v=10"></script>
+    <script src="/static/app.js?v=11"></script>
 </body>
 </html>

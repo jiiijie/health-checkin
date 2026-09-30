@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 from app.models import ChatRequest, ChatResponse, HealthRecord, DaySummary, UserProfile, ProfileResponse, QuickRecordRequest, UpdateRecordRequest, RecordResponse, GoalsResponse, GoalItem, SavedSummary, SummariesResponse, SummaryResponse, WeeklyResponse
 from app.ai_service import chat_with_ai, generate_summary
 from app.analysis import compute_goals, build_alerts, compute_weekly
+from app.calories import estimate_calories
 from app.data_store import (
     save_record, get_records_by_date, get_all_records, get_today_str,
     load_profile, save_profile, update_record, delete_record, get_record_by_id,
@@ -156,6 +157,7 @@ async def chat(req: ChatRequest):
             "timestamp": now_str,
             "date": today,
             "datetime": now_iso,
+            "calories": estimate_calories(content) if category == "diet" else 0,
         }
         save_record(record)
         saved_records.append(record)
@@ -171,16 +173,13 @@ async def chat(req: ChatRequest):
                 "timestamp": now_str,
                 "date": today,
                 "datetime": now_iso,
+                "calories": estimate_calories(req.message) if fallback["category"] == "diet" else 0,
             }
             save_record(record)
             saved_records.append(record)
 
     alerts = result.get("alerts", [])
-    # 基于今日记录 + 档案目标生成真实提醒（饮水/运动/睡眠/熬夜/久坐）
-    goal_alerts = build_alerts(compute_goals(get_records_by_date(get_today_str()), profile), get_records_by_date(get_today_str()), datetime.now())
-    for a in goal_alerts:
-        if a not in alerts:
-            alerts.append(a)
+    # 注意：目标对比提醒只在统计页显示，聊天页不显示，避免每次记录都弹窗
 
     # 处理档案更新（对话中识别到的个人信息自动同步到档案）
     profile_update = result.get("profile_update", {})
@@ -209,6 +208,7 @@ async def quick_record(req: QuickRecordRequest):
         "timestamp": now_str,
         "date": today,
         "datetime": datetime.now().isoformat(timespec="seconds"),
+        "calories": estimate_calories(req.content) if req.category.value == "diet" else 0,
     }
     save_record(record)
 
@@ -233,7 +233,8 @@ async def quick_record(req: QuickRecordRequest):
         name = category_names.get(req.category.value, "记录")
         reply = f"已记下你的{name}啦～继续加油！💪"
 
-    alerts = build_alerts(compute_goals(get_records_by_date(get_today_str()), load_profile()), get_records_by_date(get_today_str()), datetime.now())
+    # 注意：目标对比提醒只在统计页显示，聊天页不显示，避免每次记录都弹窗
+    alerts = []
 
     return ChatResponse(
         reply=reply,
@@ -268,6 +269,18 @@ async def modify_record(record_id: str, req: UpdateRecordRequest):
     updated = update_record(record_id, updates)
     if not updated:
         return RecordResponse(success=False, message="记录不存在")
+    # 编辑饮食记录时重算卡路里
+    if updated.get("category") == "diet":
+        from app.calories import estimate_calories
+        updated["calories"] = estimate_calories(updated.get("content", ""))
+        # 持久化卡路里更新
+        records = get_all_records(limit=100000)
+        for i, r in enumerate(records):
+            if r.get("id") == record_id:
+                records[i]["calories"] = updated["calories"]
+                from app.data_store import _save_all_records
+                _save_all_records(records)
+                break
     return RecordResponse(success=True, record=HealthRecord(**updated), message="修改成功")
 
 
@@ -367,9 +380,9 @@ async def export_records(fmt: str = "csv"):
     # CSV
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["date", "timestamp", "datetime", "category", "content", "id"])
+    writer.writerow(["date", "timestamp", "datetime", "category", "content", "calories", "id"])
     for r in records:
-        writer.writerow([r.get("date", ""), r.get("timestamp", ""), r.get("datetime", ""), r.get("category", ""), r.get("content", ""), r.get("id", "")])
+        writer.writerow([r.get("date", ""), r.get("timestamp", ""), r.get("datetime", ""), r.get("category", ""), r.get("content", ""), r.get("calories", 0), r.get("id", "")])
     return Response(
         content=output.getvalue(),
         media_type="text/csv",

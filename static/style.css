@@ -52,6 +52,7 @@ body {
     background: var(--card-bg);
     border-bottom: 1px solid rgba(64, 91, 104, 0.08);
     flex-shrink: 0;
+    position: relative;
 }
 
 .header-logo {
@@ -444,6 +445,46 @@ body {
     color: var(--text-secondary);
 }
 
+/* ===== 卡路里卡片 ===== */
+.calorie-card {
+    background: #FF6B6B;
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+}
+
+.calorie-icon {
+    font-size: 36px;
+}
+
+.calorie-info {
+    flex: 1;
+}
+
+.calorie-value {
+    font-size: 24px;
+    font-weight: 800;
+    color: white;
+}
+
+.calorie-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.calorie-level {
+    font-size: 13px;
+    color: white;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 6px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
 .stats-summary-card {
     background: var(--card-bg);
     border-radius: var(--radius);
@@ -553,6 +594,17 @@ body {
 .category-tag.exercise { background: #e8f5e9; color: #2e7d32; }
 .category-tag.water { background: #e0f7fa; color: #00695c; }
 .category-tag.other { background: #f3e5f5; color: #6a1b9a; }
+
+.calorie-tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: 4px;
+    font-weight: 600;
+    background: #fff0f0;
+    color: #e74c3c;
+}
 
 .empty-hint {
     text-align: center;
@@ -1076,4 +1128,316 @@ body {
         border-right: 1px solid rgba(64, 91, 104, 0.08);
         box-shadow: 0 0 40px rgba(64, 91, 104, 0.06);
     }
+}
+
+/* ============================================= */
+/* ===== 深色模式 ===== */
+/* ============================================= */
+[data-theme="dark"] {
+    --mint: #4DD8C8;
+    --mint-light: #1a3a35;
+    --slate: #c8d6db;
+    --slate-light: #8fa8b4;
+    --white: #13151e;
+    --violet: #b89ef0;
+    --violet-light: #2d2545;
+    --lime: #b8e05a;
+    --lime-light: #2a3318;
+    --text-primary: #e2e4e8;
+    --text-secondary: #7c8690;
+    --card-bg: #1e2030;
+    --shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+    --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* 深色模式 - 全局背景 */
+[data-theme="dark"] body,
+[data-theme="dark"] .app,
+[data-theme="dark"] .page-chat,
+[data-theme="dark"] .page-profile,
+[data-theme="dark"] .page-stats {
+    background: #13151e;
+}
+
+/* 深色模式 - 头部 */
+[data-theme="dark"] .app-header {
+    background: #1e2030;
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .header-subtitle {
+    background: var(--mint-light);
+    color: var(--mint);
+}
+
+/* 深色模式 - 聊天气泡 */
+[data-theme="dark"] .message.assistant .msg-bubble {
+    background: #1e2030;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .message.user .msg-bubble {
+    background: #2a3a50;
+}
+
+[data-theme="dark"] .msg-avatar {
+    background: var(--mint-light);
+}
+
+[data-theme="dark"] .message.user .msg-avatar {
+    background: var(--violet-light);
+}
+
+/* 深色模式 - 快捷操作栏 & 输入区 */
+[data-theme="dark"] .quick-actions {
+    background: #1e2030;
+    border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .quick-btn {
+    background: #252836;
+}
+
+[data-theme="dark"] .quick-btn:hover {
+    background: var(--mint-light);
+}
+
+[data-theme="dark"] .chat-input-area {
+    background: #1e2030;
+}
+
+[data-theme="dark"] #chat-input {
+    background: #252836;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] #chat-input::placeholder {
+    color: var(--text-secondary);
+}
+
+/* 深色模式 - 档案页 */
+[data-theme="dark"] .profile-header-card {
+    background: var(--mint-light);
+}
+
+[data-theme="dark"] .profile-avatar-large {
+    background: #252836;
+}
+
+[data-theme="dark"] .form-section {
+    background: #1e2030;
+}
+
+[data-theme="dark"] .section-title {
+    border-bottom-color: rgba(77, 216, 200, 0.2);
+}
+
+[data-theme="dark"] .form-group input,
+[data-theme="dark"] .form-group select {
+    background: #252836;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+}
+
+/* 深色模式 - 统计页 */
+[data-theme="dark"] .stat-card,
+[data-theme="dark"] .stats-goals-card,
+[data-theme="dark"] .stats-summary-card,
+[data-theme="dark"] .stats-history-card,
+[data-theme="dark"] .stats-export-card {
+    background: #1e2030;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .stats-header-card {
+    background: #1a5a52;
+}
+
+[data-theme="dark"] .calorie-card {
+    background: #a03030;
+}
+
+[data-theme="dark"] #btn-send {
+    background: #2a8a7e;
+}
+
+[data-theme="dark"] #btn-send:hover {
+    background: #3a9a8e;
+}
+
+[data-theme="dark"] .stats-summary-text,
+[data-theme="dark"] .stats-suggestion-text {
+    background: #252836;
+}
+
+[data-theme="dark"] .stats-goals-card h3 {
+    color: var(--slate);
+}
+
+[data-theme="dark"] .stats-goals-card,
+[data-theme="dark"] .stats-export-card {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .goal-bar {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .goal-alert {
+    background: #2a2a18;
+    color: #d4a830;
+    border-left-color: #8a7020;
+}
+
+[data-theme="dark"] .goal-alert.ok {
+    background: #1a2a1a;
+    color: #5cb85c;
+    border-left-color: #3a7a3a;
+}
+
+[data-theme="dark"] .weekly-highlight {
+    background: rgba(77, 216, 200, 0.06);
+}
+
+/* 深色模式 - 历史记录 */
+[data-theme="dark"] .history-item {
+    border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] .action-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* 深色模式 - 分类标签 */
+[data-theme="dark"] .category-tag.diet { background: #3a2a10; color: #f0a040; }
+[data-theme="dark"] .category-tag.sleep { background: #1a1a3a; color: #a0a0f0; }
+[data-theme="dark"] .category-tag.exercise { background: #1a2a1a; color: #60c060; }
+[data-theme="dark"] .category-tag.water { background: #102a2a; color: #40c0c0; }
+[data-theme="dark"] .category-tag.other { background: #2a1a2a; color: #c080c0; }
+
+/* 深色模式 - 卡路里标签 */
+[data-theme="dark"] .calorie-tag {
+    background: #2a1515;
+    color: #f06060;
+}
+
+/* 深色模式 - 历史总结 */
+[data-theme="dark"] .history-summary-item {
+    border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] .hs-tag {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* 深色模式 - 导出按钮 */
+[data-theme="dark"] .export-btn {
+    background: #252836;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .export-btn:hover {
+    border-color: var(--mint);
+    background: rgba(77, 216, 200, 0.08);
+}
+
+/* 深色模式 - 底部 Tab */
+[data-theme="dark"] .tab-bar {
+    background: #1e2030;
+    border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .tab-btn.active .tab-label {
+    color: var(--mint);
+}
+
+/* 深色模式 - 弹窗 */
+[data-theme="dark"] .modal-overlay {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .modal {
+    background: #1e2030;
+}
+
+[data-theme="dark"] .modal-close {
+    background: #252836;
+}
+
+[data-theme="dark"] .modal-field input,
+[data-theme="dark"] .modal-field select {
+    background: #252836;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .btn-cancel {
+    background: #252836;
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .btn-cancel:hover {
+    background: #2a2d3e;
+}
+
+[data-theme="dark"] .btn-confirm {
+    background: var(--slate);
+    color: #13151e;
+}
+
+/* 深色模式 - 提醒 */
+[data-theme="dark"] .alert-item {
+    background: #2a2010;
+    color: #f0a040;
+}
+
+/* 深色模式 - 滚动条 */
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* 深色模式 - 响应式边框 */
+@media (min-width: 481px) {
+    [data-theme="dark"] .app {
+        border-left-color: rgba(255, 255, 255, 0.04);
+        border-right-color: rgba(255, 255, 255, 0.04);
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
+    }
+}
+
+/* ===== 深色模式切换按钮 ===== */
+.theme-toggle {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: var(--white);
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.theme-toggle:hover {
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.theme-toggle:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+/* 深色模式下的过渡动画 */
+body, .app, .app-header, .page, .card, .stat-card,
+.msg-bubble, .quick-btn, .tab-bar, .modal {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }

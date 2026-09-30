@@ -7,6 +7,36 @@ const CATEGORY_LABELS = {
     other: "📝 其他",
 };
 
+// ===== 深色模式 =====
+function toggleTheme() {
+    const html = document.documentElement;
+    const btn = document.getElementById("theme-toggle");
+    const isDark = html.getAttribute("data-theme") === "dark";
+    
+    if (isDark) {
+        html.removeAttribute("data-theme");
+        btn.textContent = "🌙";
+        localStorage.setItem("theme", "light");
+    } else {
+        html.setAttribute("data-theme", "dark");
+        btn.textContent = "☀️";
+        localStorage.setItem("theme", "dark");
+    }
+}
+
+// 初始化主题（页面加载时立即执行）
+(function initTheme() {
+    const saved = localStorage.getItem("theme");
+    if (saved === "dark") {
+        document.documentElement.setAttribute("data-theme", "dark");
+        // 按钮图标在 DOM 加载后设置
+        document.addEventListener("DOMContentLoaded", function() {
+            const btn = document.getElementById("theme-toggle");
+            if (btn) btn.textContent = "☀️";
+        });
+    }
+})();
+
 // 快捷输入配置
 const QUICK_INPUT_CONFIG = {
     water: {
@@ -347,6 +377,29 @@ async function loadStats() {
         document.getElementById("stat-exercise").textContent = counts.exercise;
         document.getElementById("stat-sleep").textContent = counts.sleep;
 
+        // 计算今日总卡路里
+        let totalCalories = 0;
+        todayRecords.forEach((r) => {
+            if (r.category === "diet" && r.calories) {
+                totalCalories += r.calories;
+            }
+        });
+        document.getElementById("stat-calories").textContent = totalCalories;
+        
+        // 更新卡路里评价
+        const calorieLevel = document.getElementById("calorie-level");
+        if (totalCalories === 0) {
+            calorieLevel.textContent = "还没记录饮食哦";
+        } else if (totalCalories < 300) {
+            calorieLevel.textContent = "吃得有点少呢";
+        } else if (totalCalories < 500) {
+            calorieLevel.textContent = "摄入量适中";
+        } else if (totalCalories < 800) {
+            calorieLevel.textContent = "营养不错哦";
+        } else {
+            calorieLevel.textContent = "今天吃得有点多呢";
+        }
+
         // 加载目标进度 + 提醒
         loadGoals();
 
@@ -377,11 +430,13 @@ async function loadStats() {
                 const label = CATEGORY_LABELS[r.category] || r.category;
                 const div = document.createElement("div");
                 div.className = "history-item";
+                const calText = (r.category === "diet" && r.calories) ? `<span class="calorie-tag">${r.calories} 大卡</span>` : "";
                 div.innerHTML = `
                     <span class="history-time">${r.timestamp}</span>
                     <span class="history-content">
                         <span class="category-tag ${r.category}">${label}</span>
                         ${r.content}
+                        ${calText}
                     </span>
                     <span class="history-actions">
                         <button class="action-btn" title="编辑" onclick="showEditModal('${r.id}')">✏️</button>
@@ -599,7 +654,10 @@ async function exportData(type, fmt) {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        const today = new Date().toISOString().split("T")[0];
+        const now2 = new Date();
+        const today = now2.getFullYear() + '-' +
+                      String(now2.getMonth() + 1).padStart(2, '0') + '-' +
+                      String(now2.getDate()).padStart(2, '0');
         a.download = `health_${type}_${today}.${fmt}`;
         document.body.appendChild(a);
         a.click();
