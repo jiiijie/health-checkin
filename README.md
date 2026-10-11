@@ -55,6 +55,15 @@ health-checkin/
 
 ## 🚀 快速开始
 
+> 📢 **给老师的提醒**
+> 
+> 本项目不包含 `.env` 配置文件（含敏感信息），需要您自行配置：
+> 
+> 1. 复制 `.env.example` 为 `.env`
+> 2. 访问 [DeepSeek 开放平台](https://platform.deepseek.com/) 注册并获取 API Key
+> 3. 将 API Key 填入 `.env` 文件中
+> 4. 然后按照下方步骤安装依赖并启动项目
+
 ### 1. 配置环境变量
 
 在项目根目录创建 `.env`（参考 `.env.example`）：
