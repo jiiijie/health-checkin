@@ -166,4 +166,6 @@ MIT License
 
 **小眠** — 用温柔的对话，守护你的每一天 🌙
 
+⭐ **[Star this project on GitHub](https://github.com/jiiijie/health-checkin)** ⭐
+
 </div>
